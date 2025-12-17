@@ -32,7 +32,7 @@ export default function RootLayout({
       >
         <Navbar />
         <main className="w-full">
-          {children}
+        {children}
         </main>
       </body>
     </html>
