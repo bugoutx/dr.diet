@@ -120,16 +120,35 @@ const meals: Meal[] = [
 ];
 
 // Helper component for Macro Tile
-function MacroTile({ label, value, unit, icon }: { label: string; value: number; unit: string; icon: string }) {
+function MacroTile({ label, value, unit, iconType, isOrange = false }: { label: string; value: number; unit: string; iconType: "protein" | "calories"; isOrange?: boolean }) {
+  const iconColor = isOrange ? "text-drd-accent" : "text-drd-primary";
+  
+  const ProteinIcon = () => (
+    <svg className={`w-5 h-5 ${iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+    </svg>
+  );
+  
+  const CaloriesIcon = () => (
+    <svg className={`w-5 h-5 ${iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+    </svg>
+  );
+
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/60 shadow-sm hover:shadow-md transition-all duration-300 hover:border-drd-primary/40">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xl">{icon}</span>
-        <span className="text-xs font-semibold text-drd-text/60 uppercase tracking-wide">{label}</span>
-      </div>
-      <div className="flex items-baseline gap-1">
-        <span className="text-2xl font-bold text-drd-primary">{value}</span>
-        <span className="text-sm text-drd-text/60 font-medium">{unit}</span>
+    <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/60 shadow-sm hover:shadow-md transition-all duration-300 hover:border-drd-primary/40 overflow-hidden">
+      {/* Gradient border effect */}
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-drd-primary/20 via-transparent to-drd-accent/20 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="relative">
+        <div className="flex items-center gap-2 mb-2">
+          {iconType === "protein" ? <ProteinIcon /> : <CaloriesIcon />}
+          <span className="text-xs font-semibold text-drd-text/60 uppercase tracking-wide">{label}</span>
+        </div>
+        <div className="flex items-baseline gap-1">
+          <span className={`text-2xl font-bold ${isOrange ? "text-drd-accent" : "text-drd-primary"}`}>{value}</span>
+          <span className="text-sm text-drd-text/60 font-medium">{unit}</span>
+        </div>
       </div>
     </div>
   );
@@ -138,20 +157,24 @@ function MacroTile({ label, value, unit, icon }: { label: string; value: number;
 // Helper component for Benefit Tile
 function BenefitTile({ benefits }: { benefits: string[] }) {
   return (
-    <div className="bg-gradient-to-br from-emerald-50/80 via-emerald-50/60 to-white/80 backdrop-blur-sm rounded-2xl p-4 border border-emerald-200/40 shadow-sm hover:shadow-md transition-all duration-300 hover:border-drd-primary/50">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xl">✨</span>
-        <span className="text-xs font-semibold text-drd-text/70 uppercase tracking-wide">Benefits</span>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {benefits.slice(0, 3).map((benefit, idx) => (
-          <span
-            key={idx}
-            className="inline-block px-2 py-1 bg-drd-primary/15 text-drd-primary text-[10px] font-semibold rounded-full"
-          >
-            {benefit}
-          </span>
-        ))}
+    <div className="relative bg-gradient-to-br from-emerald-50/60 via-emerald-50/40 to-drd-accent/10 backdrop-blur-sm rounded-2xl p-4 border border-emerald-200/40 shadow-sm hover:shadow-md transition-all duration-300 hover:border-drd-primary/50 overflow-hidden">
+      {/* Soft gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-drd-primary/5 via-transparent to-drd-accent/5 pointer-events-none" />
+      <div className="relative">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xl">✨</span>
+          <span className="text-xs font-semibold text-drd-text/70 uppercase tracking-wide">Benefits</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {benefits.slice(0, 3).map((benefit, idx) => (
+            <span
+              key={idx}
+              className="inline-block px-2 py-1 bg-drd-primary/15 text-drd-primary text-[10px] font-semibold rounded-full"
+            >
+              {benefit}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -216,8 +239,12 @@ function MealSlide({ meal }: { meal: Meal }) {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="relative rounded-3xl overflow-hidden shadow-xl border border-white/60 bg-white/70 backdrop-blur-sm group hover:shadow-2xl hover:shadow-drd-primary/10 transition-all duration-300"
+          className="relative rounded-3xl overflow-hidden shadow-xl border border-white/60 bg-white/80 backdrop-blur-sm group hover:shadow-2xl hover:shadow-drd-primary/15 transition-all duration-300"
         >
+          {/* Gradient border effect */}
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-drd-primary/30 via-transparent to-drd-accent/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none -z-10" />
+          {/* Decorative green blob */}
+          <div className="absolute -top-12 -left-12 w-48 h-48 bg-drd-primary/8 rounded-full blur-3xl pointer-events-none" />
           {meal.isMostLoved && (
             <div className="absolute top-4 left-4 z-10">
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-xs font-bold text-drd-primary shadow-lg border border-drd-primary/20">
@@ -245,13 +272,15 @@ function MealSlide({ meal }: { meal: Meal }) {
             label="Protein"
             value={meal.protein}
             unit="g"
-            icon="💪"
+            iconType="protein"
+            isOrange={false}
           />
           <MacroTile
             label="Calories"
             value={meal.calories}
             unit="cal"
-            icon="🔥"
+            iconType="calories"
+            isOrange={true}
           />
         </div>
 
@@ -266,7 +295,15 @@ function MealSlide({ meal }: { meal: Meal }) {
         transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
         className="flex flex-col justify-center"
       >
-        <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-6 md:p-8 border border-white/60 shadow-lg">
+        <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl p-6 md:p-8 border border-white/60 shadow-lg overflow-hidden">
+          {/* Gradient border effect */}
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-drd-primary/20 via-transparent to-drd-accent/20 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          {/* Top accent strip */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-drd-primary via-drd-primary/60 to-drd-accent rounded-t-3xl" />
+          {/* Decorative orange blob */}
+          <div className="absolute -top-16 -right-16 w-56 h-56 bg-drd-accent/8 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative">
           {/* Title & Subtitle */}
           <div className="mb-4">
             <h3 className="text-3xl md:text-4xl font-bold font-heading text-drd-text mb-2 tracking-tight">
@@ -284,14 +321,21 @@ function MealSlide({ meal }: { meal: Meal }) {
 
           {/* Nutrition Chips */}
           <div className="flex flex-wrap gap-2 mb-6">
-            {topTags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center px-3 py-1.5 bg-drd-primary/10 text-drd-primary text-xs font-semibold rounded-full border border-drd-primary/20"
-              >
-                {tag}
-              </span>
-            ))}
+            {topTags.map((tag) => {
+              const isOrangeTag = tag.toLowerCase().includes("low cal") || tag.toLowerCase().includes("energy") || tag.toLowerCase().includes("boost");
+              return (
+                <span
+                  key={tag}
+                  className={`inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-full border transition-all duration-300 ${
+                    isOrangeTag
+                      ? "bg-gradient-to-r from-drd-accent/15 to-drd-accent/10 text-drd-accent border-drd-accent/30 hover:shadow-[0_0_8px_rgba(255,138,42,0.3)]"
+                      : "bg-gradient-to-r from-drd-primary/15 to-drd-primary/10 text-drd-primary border-drd-primary/30 hover:shadow-[0_0_8px_rgba(140,191,79,0.3)]"
+                  } hover:scale-105`}
+                >
+                  {tag}
+                </span>
+              );
+            })}
           </div>
 
           {/* Price & Calories Line */}
@@ -315,9 +359,13 @@ function MealSlide({ meal }: { meal: Meal }) {
             </button>
             <button
               type="button"
-              className="flex-1 px-6 py-3.5 bg-white border-2 border-drd-primary text-drd-primary rounded-full font-semibold hover:bg-drd-primary/5 transition-all duration-300"
+              className="relative flex-1 px-6 py-3.5 bg-white border-2 border-drd-primary text-drd-primary rounded-full font-semibold hover:bg-drd-primary/5 transition-all duration-300 overflow-hidden group"
             >
-              View Details
+              {/* Gradient border on hover */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-drd-primary via-drd-primary/80 to-drd-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+              {/* Inner glow on hover */}
+              <div className="absolute inset-0 rounded-full bg-drd-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <span className="relative z-10">View Details</span>
             </button>
           </div>
 
@@ -371,6 +419,7 @@ function MealSlide({ meal }: { meal: Meal }) {
               </AccordionItem>
             )}
           </div>
+          </div>
         </div>
       </motion.div>
     </div>
@@ -384,17 +433,25 @@ function ArrowButton({ direction, onClick, disabled }: { direction: "left" | "ri
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`absolute top-1/2 -translate-y-1/2 z-20 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/90 backdrop-blur-sm border border-white/60 shadow-lg flex items-center justify-center transition-all duration-300 ${
+      className={`group absolute top-1/2 -translate-y-1/2 z-20 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/90 backdrop-blur-sm border border-white/60 shadow-lg flex items-center justify-center transition-all duration-300 ${
         direction === "left" ? "left-0 -translate-x-4 md:-translate-x-8" : "right-0 translate-x-4 md:translate-x-8"
       } ${
         disabled
           ? "opacity-30 cursor-not-allowed"
-          : "hover:bg-white hover:scale-110 hover:shadow-xl hover:border-drd-primary/40"
+          : direction === "left"
+          ? "hover:bg-white hover:scale-110 hover:shadow-xl hover:shadow-drd-primary/30 hover:border-drd-primary/40"
+          : "hover:bg-white hover:scale-110 hover:shadow-xl hover:shadow-drd-accent/30 hover:border-drd-accent/40"
       }`}
       aria-label={direction === "left" ? "Previous meal" : "Next meal"}
     >
       <svg
-        className={`w-6 h-6 ${disabled ? "text-drd-text/40" : "text-drd-primary"}`}
+        className={`w-6 h-6 transition-colors ${
+          disabled
+            ? "text-drd-text/40"
+            : direction === "left"
+            ? "text-drd-primary group-hover:text-drd-primary"
+            : "text-drd-primary group-hover:text-drd-accent"
+        }`}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -419,13 +476,17 @@ function DotsIndicator({ count, currentIndex, onDotClick }: { count: number; cur
           key={index}
           type="button"
           onClick={() => onDotClick(index)}
-          className={`transition-all duration-300 rounded-full ${
+          className={`relative transition-all duration-300 rounded-full ${
             index === currentIndex
               ? "w-8 h-2 bg-drd-primary"
               : "w-2 h-2 bg-drd-primary/30 hover:bg-drd-primary/50"
           }`}
           aria-label={`Go to meal ${index + 1}`}
-        />
+        >
+          {index === currentIndex && (
+            <div className="absolute inset-0 rounded-full bg-drd-accent/40 blur-sm -z-10" />
+          )}
+        </button>
       ))}
     </div>
   );
@@ -493,8 +554,17 @@ export default function SignatureDishesSection() {
 
   return (
     <section id="signature-dishes" className="relative py-16 md:py-24 bg-white overflow-hidden">
-      {/* Subtle background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/30 via-transparent to-drd-bg/20 pointer-events-none" />
+      {/* Soft radial gradients for background wash */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(circle at 20% 30%, rgba(140, 191, 79, 0.10), transparent 55%),
+            radial-gradient(circle at 80% 40%, rgba(255, 138, 42, 0.08), transparent 55%),
+            linear-gradient(#ffffff, #ffffff)
+          `
+        }}
+      />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 lg:px-6">
         {/* Header */}
