@@ -1,26 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --drd-primary: #8CBF4F;
+  --drd-primary-dark: #5F8C33;
+  --drd-accent: #FF8A2A;
+  --drd-bg: #F7F8F5;
+  --drd-text: #1F2933;
+  --drd-muted: #9CA3AF;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-drd-primary: var(--drd-primary);
+  --color-drd-primary-dark: var(--drd-primary-dark);
+  --color-drd-accent: var(--drd-accent);
+  --color-drd-bg: var(--drd-bg);
+  --color-drd-text: var(--drd-text);
+  --color-drd-muted: var(--drd-muted);
+  --font-family-heading: var(--font-heading), system-ui, sans-serif;
+  --font-family-body: var(--font-body), system-ui, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #ffffff;
+  color: var(--drd-text);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.font-heading {
+  font-family: var(--font-heading), system-ui, sans-serif;
+}
+
+.bg-gradient-radial {
+  background: radial-gradient(circle, var(--tw-gradient-stops));
 }
