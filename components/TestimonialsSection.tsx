@@ -40,16 +40,7 @@ const testimonials: Testimonial[] = [
 
 export default function TestimonialsSection() {
   return (
-    <section className="relative py-16 md:py-24 bg-white overflow-hidden">
-      {/* Background line at top */}
-      <div className="absolute top-0 left-0 right-0 border-t border-drd-primary/10">
-        <div className="max-w-6xl mx-auto px-4 lg:px-6 py-3">
-          <p className="text-[10px] uppercase tracking-widest text-drd-muted/60 font-semibold">
-            Healthy, fresh & consistent
-          </p>
-        </div>
-      </div>
-
+    <section className="relative pt-48 pb-16 md:pt-56 md:py-24 bg-white overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 lg:px-6 pt-8">
         {/* Header */}
         <div className="text-center mb-12">
