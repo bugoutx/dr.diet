@@ -40,7 +40,7 @@ const testimonials: Testimonial[] = [
 
 export default function TestimonialsSection() {
   return (
-    <section className="relative pt-48 pb-16 md:pt-56 md:py-24 bg-white overflow-hidden">
+    <section className="relative pt-64 pb-16 md:pt-72 md:py-24 bg-white overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 lg:px-6 pt-8">
         {/* Header */}
         <div className="text-center mb-12">
