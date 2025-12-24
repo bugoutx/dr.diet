@@ -278,7 +278,11 @@ export default function ReelsRingCarousel() {
 
     const frontIndices = getFrontIndices(rotationRef.current);
     
-    videoRefsRef.current.forEach((video, index) => {
+    // Iterate over REELS array to get numeric indices, then get video from Map
+    REELS.forEach((reel, index) => {
+      const video = videoRefsRef.current.get(reel.id);
+      if (!video) return;
+      
       const shouldPlay = frontIndices.includes(index) && !pausedRef.current && !modalOpenRef.current;
       
       if (shouldPlay && video.paused) {
@@ -344,7 +348,10 @@ export default function ReelsRingCarousel() {
       
       // Update video play/pause
       const frontIndices = getFrontIndices(rotationRef.current);
-      videoRefsRef.current.forEach((video, index) => {
+      REELS.forEach((reel, index) => {
+        const video = videoRefsRef.current.get(reel.id);
+        if (!video) return;
+        
         const shouldPlay = frontIndices.includes(index) && !pausedRef.current && !modalOpenRef.current && sectionInView;
         if (shouldPlay && video.paused) {
           video.play().catch(() => {
