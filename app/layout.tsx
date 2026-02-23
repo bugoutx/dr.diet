@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import SessionProvider from "@/components/providers/SessionProvider";
 
 const headingFont = Space_Grotesk({
   variable: "--font-heading",
@@ -31,9 +32,11 @@ export default function RootLayout({
         className={`${headingFont.variable} ${bodyFont.variable} min-h-screen bg-white text-drd-text antialiased`}
       >
         <Navbar />
+        <SessionProvider>
         <main className="w-full">
-        {children}
+          {children}
         </main>
+      </SessionProvider>
       </body>
     </html>
   );

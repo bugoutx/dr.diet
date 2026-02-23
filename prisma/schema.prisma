@@ -1,0 +1,174 @@
+// Dr.Diet - Prisma Schema
+// Database: PostgreSQL (Neon or Supabase)
+// Run: npx prisma generate && npx prisma migrate dev
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ AUTH ============
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============ SITE SETTINGS (Singleton) ============
+model SiteSettings {
+  id    String @id @default("singleton")
+  
+  // Contact & Social
+  phoneNumber    String?
+  instagramUrl   String?
+  instagramHandle String?
+  
+  // Menu PDF
+  menuPdfUrl     String?
+  
+  // Location
+  googleMapsEmbedUrl String?
+  googleMapsLinkUrl  String?
+  
+  // Section visibility toggles
+  showHero        Boolean @default(true)
+  showMenu        Boolean @default(true)
+  showPlates      Boolean @default(true)
+  showScience     Boolean @default(true)
+  showVideos      Boolean @default(true)
+  showTestimonials Boolean @default(true)
+  showPlans       Boolean @default(true)
+  showContact     Boolean @default(true)
+  
+  // Science section optional content (JSON for flexibility)
+  scienceContent  Json?
+  
+  updatedAt DateTime @updatedAt
+}
+
+// ============ MENU ============
+model Category {
+  id          String   @id @default(cuid())
+  label       String
+  description String?
+  order       Int      @default(0)
+  meals       Meal[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Meal {
+  id          String   @id @default(cuid())
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  calories    String?  // e.g. "35g protein · 473 cal"
+  price       String?
+  tags        String[] // e.g. ["High Protein", "Low Cal"]
+  imageUrl    String
+  order       Int      @default(0)
+  link        String?  // optional link
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  heroSlots   HeroFeatured[]
+}
+
+// ============ HERO (Exactly 3 slots) ============
+model HeroFeatured {
+  id        String   @id @default(cuid())
+  slotIndex Int      @unique // 0, 1, 2
+  title     String
+  macros    String   // e.g. "35g protein · 473 cal"
+  tags      String[]
+  imageUrl  String
+  link      String?
+  order     Int      @default(0)
+  
+  // Optional: link to existing Meal (if picking from DB)
+  mealId    String?
+  meal      Meal?    @relation(fields: [mealId], references: [id], onDelete: SetNull)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============ OUR MOST LOVED PLATES ============
+model Plate {
+  id          String   @id @default(cuid())
+  title       String
+  subtitle    String?
+  description String?
+  imageUrl    String
+  galleryUrls String[] // additional gallery images
+  protein     Int      // grams
+  calories    Int
+  carbs       Int?
+  tags        String[]
+  ingredients String[]
+  allergens   String[]
+  nutritionFacts Json? // { fat?, fiber?, sugar? }
+  isMostLoved Boolean @default(false)
+  order       Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============ VIDEOS (max 5 visible) ============
+model Video {
+  id        String   @id @default(cuid())
+  mp4Url    String
+  posterUrl String?
+  title     String?
+  isVisible Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============ TESTIMONIALS ============
+model Testimonial {
+  id       String   @id @default(cuid())
+  name     String
+  role     String   // "Gym Member", "Office Worker", etc.
+  text     String   @db.Text
+  rating   Int      @default(5) // 1-5
+  avatarUrl String?
+  order    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============ SUBSCRIPTION PLANS ============
+model Plan {
+  id            String        @id @default(cuid())
+  title         String
+  includes      String        // e.g. "Breakfast, Lunch, Dinner + Snack"
+  weeklyPrice   Int           // in SYP
+  monthlyPrice  Int           // in SYP
+  currency      String        @default("SYP")
+  isPopular     Boolean       @default(false)
+  order         Int           @default(0)
+  features      PlanFeature[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model PlanFeature {
+  id       String  @id @default(cuid())
+  planId   String
+  plan     Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  text     String
+  included Boolean @default(true)
+  order    Int     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
