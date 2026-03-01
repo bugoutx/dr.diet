@@ -1,9 +1,21 @@
 "use client";
 
-export default function LocationContactSection() {
-  // Google Maps embed URL for G733+8G5, Damascus, Syria
-  const mapEmbedUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4152.1623094196175!2d36.25385544105741!3d33.503343381899114!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1518e6dc413cc6a7%3A0x6fc344fceac893aa!2sG733%2B8G5%2C%20Damas%2C%20Syria!5e0!3m2!1sen!2sus!4v1766573200924!5m2!1sen!2sus";
-  const mapLinkUrl = "https://maps.google.com/?q=G733+8G5+Damascus+Syria";
+type LocationSettings = {
+  phoneNumber?: string | null;
+  instagramUrl?: string | null;
+  menuPdfUrl?: string | null;
+  googleMapsEmbedUrl?: string | null;
+  googleMapsLinkUrl?: string | null;
+};
+
+const DEFAULT_MAP_EMBED = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4152.1623094196175!2d36.25385544105741!3d33.503343381899114!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1518e6dc413cc6a7%3A0x6fc344fceac893aa!2sG733%2B8G5%2C%20Damas%2C%20Syria!5e0!3m2!1sen!2sus!4v1766573200924!5m2!1sen!2sus";
+const DEFAULT_MAP_LINK = "https://maps.google.com/?q=G733+8G5+Damascus+Syria";
+
+export default function LocationContactSection({ settings }: { settings?: LocationSettings | null }) {
+  const phoneNumber = settings?.phoneNumber || "0997 920 789";
+  const menuPdfUrl = settings?.menuPdfUrl || "/menu.pdf";
+  const mapEmbedUrl = settings?.googleMapsEmbedUrl || DEFAULT_MAP_EMBED;
+  const mapLinkUrl = settings?.googleMapsLinkUrl || DEFAULT_MAP_LINK;
 
   return (
     <section 
@@ -92,10 +104,10 @@ export default function LocationContactSection() {
                   </div>
                   <div>
                     <a
-                      href="tel:0997920789"
+                      href={`tel:${phoneNumber.replace(/\s/g, "")}`}
                       className="text-drd-primary font-semibold hover:text-drd-primary-dark transition-colors"
                     >
-                      0997 920 789
+                      {phoneNumber}
                     </a>
                   </div>
                 </div>
@@ -240,9 +252,9 @@ export default function LocationContactSection() {
                   </div>
                 </a>
 
-                {/* PDF Download Button */}
+                {/* PDF Download Button - upload via admin to Blob, URL stored in settings */}
                 <a
-                  href="/menu.pdf"
+                  href={menuPdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full px-6 py-3 text-drd-text rounded-full font-semibold hover:bg-drd-bg transition-all duration-300 text-sm"

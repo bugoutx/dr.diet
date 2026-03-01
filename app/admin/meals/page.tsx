@@ -4,18 +4,25 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 type Meal = {
   id: string;
-  name: string;
-  description: string | null;
-  calories: string | null;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  calories: number | null;
   imageUrl: string;
   order: number;
-  category: { id: string; label: string };
+  category: { id: string; nameEn: string };
+  mealTags: { id: string; labelEn: string; labelAr: string; tone: string }[];
 };
 
-type Category = { id: string; label: string };
+type Category = { id: string; nameEn: string };
 
 export default function AdminMealsPage() {
   const searchParams = useSearchParams();
@@ -43,21 +50,34 @@ export default function AdminMealsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this meal?")) return;
-    const res = await fetch(`/api/admin/meals/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      alert("Failed to delete");
-      return;
+    try {
+      const res = await fetch(`/api/admin/meals/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+      setMeals(meals.filter((m) => m.id !== id));
+      toast.success("Deleted");
+    } catch {
+      toast.error("Something went wrong");
     }
-    setMeals(meals.filter((m) => m.id !== id));
   }
 
   if (loading) return <div className="text-drd-muted">Loading...</div>;
 
   return (
     <div>
-      <h1 className="text-2xl font-bold font-heading text-drd-text mb-6">
-        Meals
-      </h1>
+      <AdminPageHeader
+        title="Meals"
+        backLabel="Dashboard"
+        backHref="/admin"
+        showBack={false}
+        actions={
+          <Link
+            href={`/admin/meals/new${categoryFilter ? `?categoryId=${categoryFilter}` : ""}`}
+            className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark"
+          >
+            Add Meal
+          </Link>
+        }
+      />
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
         <select
@@ -68,16 +88,10 @@ export default function AdminMealsPage() {
           <option value="">All categories</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.label}
+              {c.nameEn}
             </option>
           ))}
         </select>
-        <Link
-          href={`/admin/meals/new${categoryFilter ? `?categoryId=${categoryFilter}` : ""}`}
-          className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark"
-        >
-          Add Meal
-        </Link>
       </div>
 
       <div className="space-y-4">
@@ -89,17 +103,20 @@ export default function AdminMealsPage() {
             <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-slate-100">
               <Image
                 src={meal.imageUrl}
-                alt={meal.name}
+                alt={meal.nameEn || meal.nameAr || meal.id || "Meal"}
                 fill
                 className="object-cover"
                 unoptimized={meal.imageUrl.startsWith("http")}
               />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="font-semibold text-drd-text">{meal.name}</h2>
-              <p className="text-sm text-drd-muted">{meal.category.label}</p>
-              {meal.calories && (
-                <p className="text-xs text-drd-muted">{meal.calories}</p>
+              <h2 className="font-semibold text-drd-text">{meal.nameEn}</h2>
+              <p className="text-sm text-drd-muted">{meal.category.nameEn}</p>
+              {(meal.proteinG != null || meal.carbsG != null || meal.calories != null || (meal.mealTags?.length ?? 0) > 0) && (
+                <p className="text-xs text-drd-muted">
+                  {[meal.proteinG != null && `${meal.proteinG}g protein`, meal.carbsG != null && `${meal.carbsG}g carbs`, meal.calories != null && `${meal.calories} cal`].filter(Boolean).join(" · ")}
+                  {meal.mealTags?.length ? ` · ${meal.mealTags.map((t) => t.labelEn).join(", ")}` : ""}
+                </p>
               )}
             </div>
             <div className="flex gap-2">

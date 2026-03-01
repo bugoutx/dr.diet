@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { toast } from "sonner";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import LoadingButton from "@/components/admin/LoadingButton";
 
-type Category = { id: string; label: string };
+type MealTagShape = { labelEn: string; labelAr: string; tone: "green" | "orange" };
+
+type Category = { id: string; nameEn: string };
 
 export default function AdminMealNewPage() {
   const router = useRouter();
@@ -13,16 +19,23 @@ export default function AdminMealNewPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState({
     categoryId: defaultCat,
-    name: "",
-    description: "",
-    calories: "",
+    nameEn: "",
+    nameAr: "",
+    descriptionEn: "",
+    descriptionAr: "",
+    proteinG: "" as string,
+    carbsG: "" as string,
+    calories: "" as string,
     price: "",
-    tags: "" as string,
+    tags: [] as MealTagShape[],
     imageUrl: "",
     link: "",
   });
+  const [newTag, setNewTag] = useState<MealTagShape>({ labelEn: "", labelAr: "", tone: "green" });
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/admin/categories")
@@ -38,50 +51,89 @@ export default function AdminMealNewPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const fd = new FormData();
-    fd.set("file", file);
-    fd.set("folder", "meals");
-    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-    setUploading(false);
-    const data = await res.json();
-    if (data.url) setForm((f) => ({ ...f, imageUrl: data.url }));
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      fd.set("folder", "meals");
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: fd,
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.error ?? `Upload failed (${res.status})`;
+        setUploadError(msg);
+        toast.error(msg);
+        return;
+      }
+      const url = data?.url ?? data?.downloadUrl;
+      if (url) {
+        setForm((f) => ({ ...f, imageUrl: url }));
+        setUploadError("");
+        toast.success("Upload complete");
+      } else {
+        setUploadError("Upload succeeded but no URL returned.");
+        toast.error("Upload succeeded but no URL returned.");
+      }
+    } catch {
+      setUploadError("Upload failed");
+      toast.error("Upload failed");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.categoryId || !form.name.trim() || !form.imageUrl) {
-      alert("Category, name, and image are required.");
+    const missing: string[] = [];
+    if (!form.categoryId?.trim()) missing.push("Category");
+    if (!form.nameEn.trim()) missing.push("Name (English)");
+    if (!form.nameAr.trim()) missing.push("Name (Arabic)");
+    if (!form.imageUrl?.trim()) missing.push("Image (upload a file or paste an image URL below)");
+    if (missing.length > 0) {
+      toast.error(`Required: ${missing.join(", ")}`);
       return;
     }
     setSaving(true);
-    const res = await fetch("/api/admin/meals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        tags: form.tags ? form.tags.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        description: form.description || null,
-        calories: form.calories || null,
-        price: form.price || null,
-        link: form.link || null,
-      }),
-    });
-    setSaving(false);
-    if (res.ok) {
-      router.push("/admin/meals");
-    } else {
-      alert("Failed to create meal");
+    try {
+      const res = await fetch("/api/admin/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categoryId: form.categoryId.trim(),
+          nameEn: form.nameEn.trim(),
+          nameAr: form.nameAr.trim(),
+          descriptionEn: form.descriptionEn.trim() || null,
+          descriptionAr: form.descriptionAr.trim() || null,
+          proteinG: form.proteinG.trim() ? parseInt(form.proteinG, 10) : null,
+          carbsG: form.carbsG.trim() ? parseInt(form.carbsG, 10) : null,
+          calories: form.calories.trim() ? parseInt(form.calories, 10) : null,
+          price: form.price.trim() || null,
+          tags: form.tags,
+          imageUrl: form.imageUrl.trim(),
+          link: form.link.trim() || null,
+        }),
+      });
+      if (res.ok) {
+        toast.success("Meal created");
+        router.push("/admin/meals");
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      toast.error(data?.error ?? "Something went wrong");
+    } finally {
+      setSaving(false);
     }
   }
 
   return (
     <div>
-      <Link href="/admin/meals" className="text-sm text-drd-primary hover:underline mb-4 inline-block">
-        ← Back to Meals
-      </Link>
-      <h1 className="text-2xl font-bold font-heading text-drd-text mb-6">
-        Add Meal
-      </h1>
+      <AdminPageHeader
+        title="Add Meal"
+        backLabel="Meals"
+        backHref="/admin/meals"
+      />
       <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
         <div>
           <label className="block text-sm font-medium text-drd-text mb-1">Category *</label>
@@ -93,38 +145,87 @@ export default function AdminMealNewPage() {
           >
             <option value="">Select category</option>
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.label}</option>
+              <option key={c.id} value={c.id}>{c.nameEn}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Name *</label>
+          <label className="block text-sm font-medium text-drd-text mb-1">Name (English) *</label>
           <input
             type="text"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            value={form.nameEn}
+            onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
             className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Description</label>
+          <label className="block text-sm font-medium text-drd-text mb-1">Name (Arabic) *</label>
+          <input
+            type="text"
+            value={form.nameAr}
+            onChange={(e) => setForm({ ...form, nameAr: e.target.value })}
+            dir="rtl"
+            className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-right"
+            placeholder="الاسم بالعربية"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-drd-text mb-1">Description (English)</label>
           <textarea
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            value={form.descriptionEn}
+            onChange={(e) => setForm({ ...form, descriptionEn: e.target.value })}
             className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
             rows={2}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Calories / Macros</label>
-          <input
-            type="text"
-            value={form.calories}
-            onChange={(e) => setForm({ ...form, calories: e.target.value })}
-            className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
-            placeholder="e.g. 35g protein · 473 cal"
+          <label className="block text-sm font-medium text-drd-text mb-1">Description (Arabic)</label>
+          <textarea
+            value={form.descriptionAr}
+            onChange={(e) => setForm({ ...form, descriptionAr: e.target.value })}
+            dir="rtl"
+            className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-right"
+            placeholder="الوصف بالعربية"
+            rows={2}
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-drd-text mb-1">Macros (optional)</label>
+          <p className="text-xs text-drd-muted mb-1">Optional — leave empty if unknown</p>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-drd-muted mb-0.5">Protein (g)</label>
+              <input
+                type="number"
+                min={0}
+                value={form.proteinG}
+                onChange={(e) => setForm({ ...form, proteinG: e.target.value })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-drd-muted mb-0.5">Carbs (g)</label>
+              <input
+                type="number"
+                min={0}
+                value={form.carbsG}
+                onChange={(e) => setForm({ ...form, carbsG: e.target.value })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-drd-muted mb-0.5">Calories (cal)</label>
+              <input
+                type="number"
+                min={0}
+                value={form.calories}
+                onChange={(e) => setForm({ ...form, calories: e.target.value })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+              />
+            </div>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-drd-text mb-1">Price</label>
@@ -136,28 +237,101 @@ export default function AdminMealNewPage() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Tags (comma-separated)</label>
-          <input
-            type="text"
-            value={form.tags}
-            onChange={(e) => setForm({ ...form, tags: e.target.value })}
-            className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
-            placeholder="High Protein, Low Cal"
-          />
+          <label className="block text-sm font-medium text-drd-text mb-1">Tags</label>
+          <div className="space-y-2">
+            {form.tags.map((tag, idx) => (
+              <div key={idx} className="flex items-center gap-2 flex-wrap">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tag.tone === "orange" ? "bg-drd-accent/20 text-drd-accent" : "bg-drd-primary/20 text-drd-primary"}`}>
+                  {tag.labelEn}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, tags: form.tags.filter((_, i) => i !== idx) })}
+                  className="text-red-600 text-xs hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <div className="flex flex-wrap gap-2 items-end pt-2 border-t border-slate-100">
+              <input
+                type="text"
+                value={newTag.labelEn}
+                onChange={(e) => setNewTag({ ...newTag, labelEn: e.target.value })}
+                placeholder="Label (EN)"
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-drd-text w-32"
+              />
+              <input
+                type="text"
+                value={newTag.labelAr}
+                onChange={(e) => setNewTag({ ...newTag, labelAr: e.target.value })}
+                placeholder="التسمية (عربي)"
+                dir="rtl"
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-drd-text text-right w-32"
+              />
+              <select
+                value={newTag.tone}
+                onChange={(e) => setNewTag({ ...newTag, tone: e.target.value as "green" | "orange" })}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-drd-text"
+              >
+                <option value="green">Green</option>
+                <option value="orange">Orange</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newTag.labelEn.trim() || !newTag.labelAr.trim()) return;
+                  setForm({ ...form, tags: [...form.tags, { ...newTag }] });
+                  setNewTag({ labelEn: "", labelAr: "", tone: "green" });
+                }}
+                className="rounded-lg bg-drd-primary/20 text-drd-primary px-3 py-1.5 text-sm font-medium hover:bg-drd-primary/30"
+              >
+                Add tag
+              </button>
+            </div>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-drd-text mb-1">Image *</label>
+          {form.imageUrl && (
+            <div className="mb-3">
+              <p className="text-xs text-drd-muted mb-1">Current image</p>
+              <div className="relative w-full max-w-xs aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                <Image
+                  src={form.imageUrl}
+                  alt={form.nameEn || "Meal"}
+                  fill
+                  className="object-contain"
+                  unoptimized={form.imageUrl.startsWith("http")}
+                />
+              </div>
+            </div>
+          )}
           <input
+            ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={handleFileChange}
-            disabled={uploading}
-            className="block w-full text-sm text-drd-text"
+            className="hidden"
           />
-          {form.imageUrl && (
-            <p className="mt-1 text-xs text-drd-muted truncate">{form.imageUrl}</p>
-          )}
-          {uploading && <p className="text-xs text-drd-muted">Uploading...</p>}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="rounded-lg border-2 border-drd-primary bg-white text-drd-primary px-4 py-2 font-semibold hover:bg-drd-primary/5 disabled:opacity-50"
+          >
+            {uploading ? "Uploading..." : form.imageUrl ? "Change Image" : "Upload Image"}
+          </button>
+          <span className="ml-2 text-sm text-drd-muted">or paste URL:</span>
+          <input
+            type="url"
+            value={form.imageUrl}
+            onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
+            placeholder="https://..."
+            className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-sm"
+          />
+          {uploadError && <p className="mt-1 text-sm text-red-600">{uploadError}</p>}
+          {form.imageUrl && <p className="mt-1 text-xs text-drd-muted truncate max-w-full break-all">{form.imageUrl}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-drd-text mb-1">Link (optional)</label>
@@ -168,13 +342,15 @@ export default function AdminMealNewPage() {
             className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
           />
         </div>
-        <button
+        <LoadingButton
           type="submit"
-          disabled={saving}
+          loading={saving}
+          disabled={uploading}
+          loadingLabel="Creating…"
           className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-70"
         >
-          {saving ? "Creating..." : "Create Meal"}
-        </button>
+          Create Meal
+        </LoadingButton>
       </form>
     </div>
   );

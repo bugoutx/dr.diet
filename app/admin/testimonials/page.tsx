@@ -1,19 +1,416 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import InlineLoader from "@/components/admin/InlineLoader";
+
+type Testimonial = {
+  id: string;
+  name: string;
+  role: string | null;
+  text: string;
+  rating: number;
+  avatarUrl: string | null;
+  avatarColor: string | null;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+function StarDots({ rating }: { rating: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span
+          key={i}
+          className={`inline-block w-2 h-2 rounded-full ${i <= rating ? "bg-drd-accent" : "bg-slate-200"}`}
+          aria-hidden
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function AdminTestimonialsPage() {
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [reordering, setReordering] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState<"add" | "edit" | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formRole, setFormRole] = useState("");
+  const [formText, setFormText] = useState("");
+  const [formRating, setFormRating] = useState(5);
+  const [formActive, setFormActive] = useState(true);
+
+  function fetchTestimonials() {
+    fetch("/api/admin/testimonials", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setTestimonials(data);
+        else setTestimonials([]);
+      })
+      .catch(() => setTestimonials([]))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    fetchTestimonials();
+  }, []);
+
+  function openAdd() {
+    setEditingId(null);
+    setFormName("");
+    setFormRole("");
+    setFormText("");
+    setFormRating(5);
+    setFormActive(true);
+    setModalOpen("add");
+  }
+
+  function openEdit(t: Testimonial) {
+    setEditingId(t.id);
+    setFormName(t.name);
+    setFormRole(t.role ?? "");
+    setFormText(t.text);
+    setFormRating(t.rating);
+    setFormActive(t.isActive);
+    setModalOpen("edit");
+  }
+
+  function closeModal() {
+    setModalOpen(null);
+    setEditingId(null);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const name = formName.trim();
+    const text = formText.trim();
+    if (name.length < 2) {
+      toast.error("Name must be at least 2 characters");
+      return;
+    }
+    if (text.length < 10) {
+      toast.error("Quote must be at least 10 characters");
+      return;
+    }
+    setSavingId(editingId ?? "new");
+    try {
+      if (modalOpen === "add") {
+        const res = await fetch("/api/admin/testimonials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            name,
+            role: formRole.trim() || null,
+            text,
+            rating: formRating,
+            isActive: formActive,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = data?.error?.name?.[0] ?? data?.error?.text?.[0] ?? data?.error ?? "Failed to create";
+          throw new Error(msg);
+        }
+        setTestimonials((prev) => [...prev, data].sort((a, b) => a.sortOrder - b.sortOrder));
+        toast.success("Testimonial added");
+      } else {
+        if (!editingId) return;
+        const res = await fetch(`/api/admin/testimonials/${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            name,
+            role: formRole.trim() || null,
+            text,
+            rating: formRating,
+            isActive: formActive,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = data?.error?.name?.[0] ?? data?.error?.text?.[0] ?? data?.error ?? "Failed to update";
+          throw new Error(msg);
+        }
+        setTestimonials((prev) => prev.map((t) => (t.id === editingId ? data : t)));
+        toast.success("Updated");
+      }
+      closeModal();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this testimonial?")) return;
+    try {
+      const res = await fetch(`/api/admin/testimonials/${id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to delete");
+      setTestimonials((prev) => prev.filter((t) => t.id !== id));
+      if (editingId === id) closeModal();
+      toast.success("Deleted");
+    } catch {
+      toast.error("Something went wrong");
+    }
+  }
+
+  async function handleToggleActive(t: Testimonial) {
+    const next = !t.isActive;
+    setTestimonials((prev) => prev.map((x) => (x.id === t.id ? { ...x, isActive: next } : x)));
+    setTogglingId(t.id);
+    try {
+      const res = await fetch(`/api/admin/testimonials/${t.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isActive: next }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? "Failed to update");
+      }
+      toast.success("Updated");
+    } catch (e) {
+      setTestimonials((prev) => prev.map((x) => (x.id === t.id ? { ...x, isActive: !next } : x)));
+      toast.error(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
+  function moveTestimonial(index: number, direction: "up" | "down") {
+    const newList = [...testimonials];
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= newList.length || reordering) return;
+    [newList[index], newList[target]] = [newList[target], newList[index]];
+    const ids = newList.map((x) => x.id);
+    setTestimonials(newList);
+    setReordering(true);
+    fetch("/api/admin/testimonials/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ ids }),
+    })
+      .then((res) => {
+        if (res.ok) toast.success("Order updated");
+        else return res.json().then((d) => { throw new Error(d?.error ?? "Failed to reorder"); });
+      })
+      .catch((e) => {
+        setTestimonials(testimonials);
+        toast.error(e instanceof Error ? e.message : "Something went wrong");
+      })
+      .finally(() => setReordering(false));
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <AdminPageHeader title="Testimonials" backLabel="Dashboard" backHref="/admin" showBack={false} />
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 rounded-xl border border-slate-200 bg-slate-50 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold font-heading text-drd-text mb-6">
-        Testimonials
-      </h1>
-      <p className="text-drd-muted mb-4">
-        CRUD testimonials (name, role, text, rating, avatar). Reorder. (Coming in next phase.)
+      <AdminPageHeader
+        title="Testimonials"
+        backLabel="Dashboard"
+        backHref="/admin"
+        showBack={false}
+        actions={
+          <button
+            type="button"
+            onClick={openAdd}
+            className="rounded-full bg-drd-primary px-5 py-2 font-semibold text-white hover:bg-drd-primary-dark"
+          >
+            Add Testimonial
+          </button>
+        }
+      />
+      <p className="text-drd-muted mb-6">
+        Manage customer testimonials. Only active ones appear on the landing page. Drag order with ▲▼.
       </p>
-      <Link href="/admin" className="text-drd-primary hover:underline">
-        ← Back to Dashboard
-      </Link>
+
+      <div className="mb-4 flex items-center justify-between">
+        <span className="text-sm text-drd-muted">Use ▲▼ to reorder</span>
+        {reordering && <InlineLoader label="Saving order…" />}
+      </div>
+      <div className="space-y-4">
+        {testimonials.map((t, index) => (
+          <div
+            key={t.id}
+            className="flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <div className="flex flex-col gap-0.5">
+              <button
+                type="button"
+                onClick={() => moveTestimonial(index, "up")}
+                disabled={reordering || index === 0}
+                className="rounded p-1 text-drd-text/60 hover:bg-slate-100 disabled:opacity-30"
+                aria-label="Move up"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                onClick={() => moveTestimonial(index, "down")}
+                disabled={reordering || index === testimonials.length - 1}
+                className="rounded p-1 text-drd-text/60 hover:bg-slate-100 disabled:opacity-30"
+                aria-label="Move down"
+              >
+                ▼
+              </button>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-drd-primary/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-drd-primary font-semibold">{t.name.charAt(0)}</span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-drd-text">{t.name}</p>
+              <p className="text-sm text-drd-muted">{t.role || "—"}</p>
+              <p className="text-sm text-drd-text/80 line-clamp-2 mt-0.5">{t.text}</p>
+            </div>
+            <StarDots rating={t.rating} />
+            <label className="flex items-center gap-2">
+              <span className="text-sm text-drd-muted">Active</span>
+              <input
+                type="checkbox"
+                checked={t.isActive}
+                onChange={() => handleToggleActive(t)}
+                disabled={togglingId === t.id}
+                className="rounded border-slate-300"
+              />
+              {togglingId === t.id && <InlineLoader label="" />}
+            </label>
+            <button
+              type="button"
+              onClick={() => openEdit(t)}
+              className="text-sm text-drd-primary hover:underline"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDelete(t.id)}
+              className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {testimonials.length === 0 && (
+        <p className="text-drd-muted">No testimonials yet. Click &quot;Add Testimonial&quot; to create one.</p>
+      )}
+
+      {/* Add / Edit Modal */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={closeModal}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-drd-text mb-4">
+              {modalOpen === "add" ? "Add Testimonial" : "Edit Testimonial"}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-drd-text mb-1">Name *</label>
+                <input
+                  type="text"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="e.g. Sarah Johnson"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  required
+                  minLength={2}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-drd-text mb-1">Role / Title (optional)</label>
+                <input
+                  type="text"
+                  value={formRole}
+                  onChange={(e) => setFormRole(e.target.value)}
+                  placeholder="e.g. Gym Member"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-drd-text mb-1">Quote *</label>
+                <textarea
+                  value={formText}
+                  onChange={(e) => setFormText(e.target.value)}
+                  placeholder="Customer quote (min 10 characters)"
+                  rows={4}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  required
+                  minLength={10}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-drd-text mb-1">Rating (1–5)</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setFormRating(r)}
+                      className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-medium ${
+                        formRating === r ? "border-drd-accent bg-drd-accent/10 text-drd-accent" : "border-slate-200 text-drd-muted"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formActive}
+                  onChange={(e) => setFormActive(e.target.checked)}
+                  className="rounded border-slate-300"
+                />
+                <span className="text-sm text-drd-text">Active (show on landing)</span>
+              </label>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={!!savingId}
+                  className="rounded-full bg-drd-primary px-5 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-50"
+                >
+                  {savingId ? "Saving…" : modalOpen === "add" ? "Create" : "Save"}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="rounded-full border border-slate-200 px-5 py-2 font-semibold text-drd-text hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

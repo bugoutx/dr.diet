@@ -1,27 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { formatNumber } from "@/lib/formatNumber";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
-type Plan = {
+export type Plan = {
   id: string;
-  title: string;
-  includes: string;
-  features: string[];
-  priceWeekly: number;
-  priceMonthly: number;
+  titleEn: string;
+  titleAr: string;
+  subtitleEn?: string;
+  subtitleAr?: string;
+  featuresEn: string[];
+  featuresAr: string[];
+  priceWeekly?: number | null;
+  priceMonthly?: number | null;
   isPopular?: boolean;
 };
 
-const plans: Plan[] = [
+// Copy for section labels (EN/AR)
+const LABELS = {
+  sectionTitle: { en: "Subscription Plans", ar: "خطط الاشتراك" },
+  sectionSubtitle: { en: "Choose the plan that fits your day.", ar: "اختر الخطة التي تناسب يومك." },
+  weekly: { en: "Weekly", ar: "أسبوعي" },
+  monthly: { en: "Monthly", ar: "شهري" },
+  mostPopular: { en: "Most Popular", ar: "الأكثر شعبية" },
+  perWeek: { en: "per week", ar: "للأسبوع" },
+  perMonth: { en: "per month", ar: "للشهر" },
+  emptyWeekly: { en: "No weekly plans available right now.", ar: "لا توجد خطط أسبوعية متاحة حالياً." },
+  emptyMonthly: { en: "No monthly plans available right now.", ar: "لا توجد خطط شهرية متاحة حالياً." },
+} as const;
+
+// Fallback when DB has no plans
+const FALLBACK_PLANS: Plan[] = [
   {
     id: "full-plan",
-    title: "Full Plan",
-    includes: "Breakfast, Lunch, Dinner + Snack",
-    features: [
+    titleEn: "Full Plan",
+    titleAr: "الخطة الكاملة",
+    subtitleEn: "Breakfast, Lunch, Dinner + Snack",
+    subtitleAr: "فطور، غداء، عشاء + وجبة خفيفة",
+    featuresEn: [
       "Calories tailored to your needs",
       "5 days/week for 4 weeks",
       "Pause or skip any day anytime",
+    ],
+    featuresAr: [
+      "سعرات مصممة لاحتياجاتك",
+      "5 أيام في الأسبوع لمدة 4 أسابيع",
+      "إيقاف أو تخطي أي يوم في أي وقت",
     ],
     priceWeekly: 625000,
     priceMonthly: 3000000,
@@ -29,54 +56,69 @@ const plans: Plan[] = [
   },
   {
     id: "breakfast-lunch",
-    title: "Breakfast + Lunch",
-    includes: "Breakfast, Lunch + Snack",
-    features: [
+    titleEn: "Breakfast + Lunch",
+    titleAr: "فطور + غداء",
+    subtitleEn: "Breakfast, Lunch + Snack",
+    subtitleAr: "فطور، غداء + وجبة خفيفة",
+    featuresEn: [
       "Balanced meals & clean ingredients",
       "5 days/week for 4 weeks",
       "Pause or skip any day anytime",
+    ],
+    featuresAr: [
+      "وجبات متوازنة ومكونات نظيفة",
+      "5 أيام في الأسبوع لمدة 4 أسابيع",
+      "إيقاف أو تخطي أي يوم في أي وقت",
     ],
     priceWeekly: 450000,
     priceMonthly: 2280000,
   },
   {
     id: "lunch-dinner",
-    title: "Lunch + Dinner",
-    includes: "Lunch, Dinner + Snack",
-    features: [
+    titleEn: "Lunch + Dinner",
+    titleAr: "غداء + عشاء",
+    subtitleEn: "Lunch, Dinner + Snack",
+    subtitleAr: "غداء، عشاء + وجبة خفيفة",
+    featuresEn: [
       "High-protein plates for steady energy",
       "5 days/week for 4 weeks",
       "Pause or skip any day anytime",
+    ],
+    featuresAr: [
+      "أطباق غنية بالبروتين لطاقة ثابتة",
+      "5 أيام في الأسبوع لمدة 4 أسابيع",
+      "إيقاف أو تخطي أي يوم في أي وقت",
     ],
     priceWeekly: 500000,
     priceMonthly: 2400000,
   },
   {
     id: "work-lunch",
-    title: "Work Lunch",
-    includes: "Lunch + Snack",
-    features: [
+    titleEn: "Work Lunch",
+    titleAr: "غداء العمل",
+    subtitleEn: "Lunch + Snack",
+    subtitleAr: "غداء + وجبة خفيفة",
+    featuresEn: [
       "Ideal for busy workdays",
       "5 days/week for 4 weeks",
       "Pause or skip any day anytime",
+    ],
+    featuresAr: [
+      "مثالي لأيام العمل المزدحمة",
+      "5 أيام في الأسبوع لمدة 4 أسابيع",
+      "إيقاف أو تخطي أي يوم في أي وقت",
     ],
     priceWeekly: 250000,
     priceMonthly: 1200000,
   },
 ];
 
-// Format number with commas
-const formatPrice = (price: number): string => {
-  return price.toLocaleString("en-US");
-};
-
-// Wave SVG for card header with refined gradient and highlight line
 const WaveHeader = ({ isPopular = false }: { isPopular?: boolean }) => (
   <div className="relative h-32 w-full overflow-hidden rounded-t-3xl">
     <div
       className={`absolute inset-0 ${
         isPopular
-          ? "bg-gradient-to-br from-[#5F9E2F] via-[#79B83E] to-[#CFF6DF]"
+          ? "bg-gradient-to-br from-[#4a7c25] via-[#5F9E2F] to-[#9ed4a8]"
           : "bg-gradient-to-br from-[#5F9E2F]/70 via-[#79B83E]/60 to-[#CFF6DF]/50"
       }`}
     >
@@ -98,7 +140,6 @@ const WaveHeader = ({ isPopular = false }: { isPopular?: boolean }) => (
           fill="white"
           className="transition-all duration-300"
         />
-        {/* Faint highlight line at wave edge */}
         <path
           d="M0,32 Q100,16 200,32 T400,32"
           stroke="url(#waveGradient)"
@@ -108,38 +149,14 @@ const WaveHeader = ({ isPopular = false }: { isPopular?: boolean }) => (
         />
       </svg>
     </div>
-    {isPopular && (
-      <motion.div
-        className="absolute top-4 left-1/2 -translate-x-1/2"
-        animate={{
-          boxShadow: [
-            "0 0 0 0 rgba(95, 158, 47, 0.4)",
-            "0 0 12px 4px rgba(95, 158, 47, 0.3)",
-            "0 0 0 0 rgba(95, 158, 47, 0.4)",
-          ],
-        }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      >
-        <span className="relative rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[#5F9E2F] shadow-lg border border-[#5F9E2F]/20">
-          Most Popular
-        </span>
-      </motion.div>
-    )}
   </div>
 );
 
-// Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-    },
+    transition: { staggerChildren: 0.15 },
   },
 };
 
@@ -148,10 +165,7 @@ const cardVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.5,
-      ease: "easeOut",
-    },
+    transition: { duration: 0.5, ease: "easeOut" },
   },
 };
 
@@ -162,23 +176,27 @@ type PlanCardProps = {
 };
 
 function PlanCard({ plan, billingPeriod, index }: PlanCardProps) {
-  const isPopular = plan.isPopular || false;
-
+  const { lang } = useLang();
+  const isPopular = plan.isPopular ?? false;
   const displayPrice =
     billingPeriod === "weekly" ? plan.priceWeekly : plan.priceMonthly;
-  const periodLabel = billingPeriod === "weekly" ? "per week" : "per month";
+  const periodLabel =
+    billingPeriod === "weekly"
+      ? tField(lang, LABELS.perWeek.en, LABELS.perWeek.ar)
+      : tField(lang, LABELS.perMonth.en, LABELS.perMonth.ar);
+  const title = tField(lang, plan.titleEn, plan.titleAr);
+  const subtitle = tField(lang, plan.subtitleEn ?? "", plan.subtitleAr ?? "");
+  const features =
+    lang === "ar" ? plan.featuresAr : plan.featuresEn;
 
   return (
     <motion.div
       variants={cardVariants}
       whileHover={{ y: -4, scale: isPopular ? 1.03 : 1.02 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="group relative flex flex-col rounded-3xl w-full overflow-hidden"
+      className="group relative flex flex-col rounded-3xl w-full overflow-hidden flex-shrink-0"
     >
-      {/* Gradient outline border */}
       <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-drd-primary/30 via-emerald-300/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
-      
-      {/* Glassmorphism card */}
       <div
         className={`relative flex flex-col flex-1 rounded-3xl border backdrop-blur-sm transition-all duration-300 ${
           isPopular
@@ -186,36 +204,54 @@ function PlanCard({ plan, billingPeriod, index }: PlanCardProps) {
             : "bg-white/80 border-white/60 hover:border-drd-primary/50"
         } group-hover:shadow-[0_0_0_1px_rgba(95,158,47,0.2),0_8px_24px_rgba(95,158,47,0.15)]`}
       >
-        {/* Wave Header */}
-        <WaveHeader isPopular={isPopular} />
-
-        {/* Card Body */}
+        <div className="relative">
+          <WaveHeader isPopular={isPopular} />
+          {isPopular && (
+            <motion.div
+              className="absolute top-4 left-1/2 -translate-x-1/2"
+              animate={{
+                boxShadow: [
+                  "0 0 0 0 rgba(95, 158, 47, 0.4)",
+                  "0 0 12px 4px rgba(95, 158, 47, 0.3)",
+                  "0 0 0 0 rgba(95, 158, 47, 0.4)",
+                ],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              <span className="relative rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[#5F9E2F] shadow-lg border border-[#5F9E2F]/20">
+                {tField(lang, LABELS.mostPopular.en, LABELS.mostPopular.ar)}
+              </span>
+            </motion.div>
+          )}
+        </div>
         <div className="flex flex-1 flex-col p-6 pt-8 pb-8">
-          {/* Plan Title */}
           <h3 className="mb-2.5 text-2xl font-bold font-heading text-drd-text tracking-tight">
-            {plan.title}
+            {title}
           </h3>
-
-          {/* Includes */}
-          <p className="mb-6 text-sm text-drd-text/70 leading-relaxed">
-            {plan.includes}
-          </p>
-
-          {/* Features List */}
+          {subtitle && (
+            <p className="mb-6 text-sm text-drd-text/70 leading-relaxed">
+              {subtitle}
+            </p>
+          )}
           <ul className="mb-8 flex-1 space-y-3">
-            {plan.features.map((feature, idx) => (
-              <li key={idx} className="flex items-start gap-2.5 text-sm text-drd-text/80 leading-relaxed">
+            {features.map((feature, idx) => (
+              <li
+                key={idx}
+                className="flex items-start gap-2.5 text-sm text-drd-text/80 leading-relaxed"
+              >
                 <span className="mt-0.5 text-drd-primary text-base">✓</span>
                 <span>{feature}</span>
               </li>
             ))}
           </ul>
-
-          {/* Pricing */}
           <div className="border-t border-slate-200/60 pt-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-drd-primary tracking-tight">
-                {formatPrice(displayPrice)}{" "}
+                {formatNumber(displayPrice ?? 0, lang)}{" "}
                 <span className="text-sm font-medium opacity-70">SYP</span>
               </p>
               <p className="mt-1.5 text-xs text-drd-text/60 font-medium">
@@ -229,16 +265,32 @@ function PlanCard({ plan, billingPeriod, index }: PlanCardProps) {
   );
 }
 
-export default function PlanSubscriptionsSection() {
+export default function PlanSubscriptionsSection({ plans: propPlans }: { plans?: Plan[] }) {
+  const { lang } = useLang();
+  const plans = propPlans && propPlans.length > 0 ? propPlans : FALLBACK_PLANS;
   const [billingPeriod, setBillingPeriod] = useState<"weekly" | "monthly">("weekly");
+
+  const filteredPlans = useMemo(() => {
+    if (billingPeriod === "weekly") {
+      return plans.filter((p) => p.priceWeekly != null);
+    }
+    return plans.filter((p) => p.priceMonthly != null);
+  }, [plans, billingPeriod]);
+
+  const sectionTitle = tField(lang, LABELS.sectionTitle.en, LABELS.sectionTitle.ar);
+  const sectionSubtitle = tField(lang, LABELS.sectionSubtitle.en, LABELS.sectionSubtitle.ar);
+  const weeklyLabel = tField(lang, LABELS.weekly.en, LABELS.weekly.ar);
+  const monthlyLabel = tField(lang, LABELS.monthly.en, LABELS.monthly.ar);
+  const emptyMessage =
+    billingPeriod === "weekly"
+      ? tField(lang, LABELS.emptyWeekly.en, LABELS.emptyWeekly.ar)
+      : tField(lang, LABELS.emptyMonthly.en, LABELS.emptyMonthly.ar);
 
   return (
     <section id="plans" className="relative bg-white py-16 sm:py-20">
-      {/* Subtle background glow */}
       <div className="absolute inset-0 bg-gradient-radial from-emerald-50/20 via-transparent to-transparent pointer-events-none" />
 
       <div className="relative mx-auto max-w-[1400px] px-4 lg:px-6">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -247,14 +299,13 @@ export default function PlanSubscriptionsSection() {
           className="mb-12 text-center"
         >
           <h2 className="mb-3 text-3xl md:text-4xl font-bold font-heading text-drd-text tracking-tight">
-            Subscription Plans
+            {sectionTitle}
           </h2>
           <p className="text-lg text-drd-text/70 font-medium">
-            Choose the plan that fits your day.
+            {sectionSubtitle}
           </p>
         </motion.div>
 
-        {/* Billing Period Toggle */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -272,7 +323,7 @@ export default function PlanSubscriptionsSection() {
                   : "text-drd-text/70 hover:text-drd-primary"
               }`}
             >
-              Weekly
+              {weeklyLabel}
             </button>
             <button
               type="button"
@@ -283,30 +334,54 @@ export default function PlanSubscriptionsSection() {
                   : "text-drd-text/70 hover:text-drd-primary"
               }`}
             >
-              Monthly
+              {monthlyLabel}
             </button>
           </div>
         </motion.div>
 
-        {/* Plans Grid - 4 in a row desktop, 2 tablet, 1 mobile */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          className="grid grid-cols-1 gap-5 md:gap-6 md:grid-cols-2 lg:grid-cols-4"
-        >
-          {plans.map((plan, index) => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              billingPeriod={billingPeriod}
-              index={index}
-            />
-          ))}
-        </motion.div>
+        {filteredPlans.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="rounded-2xl border border-slate-200 bg-slate-50/50 py-12 px-6 text-center"
+          >
+            <p className="text-drd-text/70 font-medium">{emptyMessage}</p>
+          </motion.div>
+        ) : (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            className={`
+              grid gap-5 md:gap-6
+              grid-cols-1 md:grid-cols-2
+              lg:flex lg:flex-row lg:justify-center lg:overflow-x-auto lg:snap-x lg:snap-mandatory
+              [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden
+              lg:pb-2
+            `}
+            style={{
+              gridTemplateColumns:
+                filteredPlans.length <= 2
+                  ? "repeat(auto-fit, minmax(280px, 320px))"
+                  : undefined,
+            }}
+          >
+            {filteredPlans.map((plan, index) => (
+              <div
+                key={plan.id}
+                className="lg:snap-center lg:flex-shrink-0 lg:w-[min(320px,85vw)] lg:max-w-[320px]"
+              >
+                <PlanCard
+                  plan={plan}
+                  billingPeriod={billingPeriod}
+                  index={index}
+                />
+              </div>
+            ))}
+          </motion.div>
+        )}
       </div>
     </section>
   );
 }
-

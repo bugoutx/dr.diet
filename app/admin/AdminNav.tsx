@@ -58,6 +58,12 @@ export default function AdminNav({
             Plates
           </Link>
           <Link
+            href="/admin/loved-plates"
+            className={`text-sm ${pathname?.startsWith("/admin/loved-plates") ? "text-drd-primary font-medium" : "text-drd-text/70 hover:text-drd-primary"}`}
+          >
+            Loved Plates
+          </Link>
+          <Link
             href="/admin/videos"
             className={`text-sm ${pathname?.startsWith("/admin/videos") ? "text-drd-primary font-medium" : "text-drd-text/70 hover:text-drd-primary"}`}
           >

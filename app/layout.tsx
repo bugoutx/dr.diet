@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
+import PublicNavWrapper from "@/components/PublicNavWrapper";
+import OverflowDebugWrapper from "@/components/OverflowDebugWrapper";
 import SessionProvider from "@/components/providers/SessionProvider";
+import { LangProvider } from "@/lib/LangContext";
 
 const headingFont = Space_Grotesk({
   variable: "--font-heading",
@@ -27,16 +29,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full bg-white">
+    <html lang="en" className="h-full bg-white" suppressHydrationWarning>
       <body
         className={`${headingFont.variable} ${bodyFont.variable} min-h-screen bg-white text-drd-text antialiased`}
       >
-        <Navbar />
         <SessionProvider>
-        <main className="w-full">
-          {children}
-        </main>
-      </SessionProvider>
+          <LangProvider>
+            <PublicNavWrapper />
+            <OverflowDebugWrapper />
+            <main className="w-full">
+              {children}
+            </main>
+          </LangProvider>
+        </SessionProvider>
       </body>
     </html>
   );

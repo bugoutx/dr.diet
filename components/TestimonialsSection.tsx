@@ -2,15 +2,18 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
-type Testimonial = {
+export type Testimonial = {
   name: string;
   tag: string;
   content: string;
   rating: number;
 };
 
-const testimonials: Testimonial[] = [
+// Fallback when DB has no testimonials
+const FALLBACK_TESTIMONIALS: Testimonial[] = [
   {
     name: "Sarah Johnson",
     tag: "Gym Member",
@@ -92,6 +95,7 @@ interface TestimonialModalProps {
 
 function TestimonialModal({ testimonial, onClose }: TestimonialModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const { lang } = useLang();
 
   useEffect(() => {
     if (!testimonial) return;
@@ -118,6 +122,10 @@ function TestimonialModal({ testimonial, onClose }: TestimonialModalProps) {
   }, [testimonial, onClose]);
 
   if (!testimonial) return null;
+
+  const name = tField(lang, testimonial.name, testimonial.name);
+  const tag = tField(lang, testimonial.tag, testimonial.tag);
+  const content = tField(lang, testimonial.content, testimonial.content);
 
   return (
     <AnimatePresence>
@@ -156,8 +164,8 @@ function TestimonialModal({ testimonial, onClose }: TestimonialModalProps) {
                     Verified Customer
                   </span>
                 </div>
-                <h3 className="text-2xl font-bold font-heading text-drd-text mb-1">{testimonial.name}</h3>
-                <p className="text-sm text-drd-muted">{testimonial.tag}</p>
+                <h3 className="text-2xl font-bold font-heading text-drd-text mb-1">{name}</h3>
+                <p className="text-sm text-drd-muted">{tag}</p>
               </div>
               <div className="flex gap-1">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -169,19 +177,19 @@ function TestimonialModal({ testimonial, onClose }: TestimonialModalProps) {
             {/* Full Content */}
             <div className="relative">
               <div className="absolute top-0 left-0 text-6xl text-drd-accent/20 font-serif leading-none">❝</div>
-              <p className="text-drd-text leading-relaxed pl-8 text-lg">{testimonial.content}</p>
+              <p className="text-drd-text leading-relaxed pl-8 text-lg">{content}</p>
             </div>
 
             {/* Avatar */}
             <div className="flex items-center gap-3 pt-4 border-t border-drd-primary/10">
               <div className="relative">
                 <div className="w-14 h-14 rounded-full bg-gradient-to-br from-drd-primary/20 to-drd-accent/20 flex items-center justify-center ring-2 ring-drd-primary/30">
-                  <span className="text-drd-primary font-semibold text-xl">{testimonial.name.charAt(0)}</span>
+                  <span className="text-drd-primary font-semibold text-xl">{name.charAt(0)}</span>
                 </div>
               </div>
               <div>
-                <p className="font-semibold text-drd-text">{testimonial.name}</p>
-                <p className="text-sm text-drd-muted">{testimonial.tag}</p>
+                <p className="font-semibold text-drd-text">{name}</p>
+                <p className="text-sm text-drd-muted">{tag}</p>
               </div>
             </div>
           </div>
@@ -200,6 +208,10 @@ function TestimonialCard({ testimonial, onReadMore }: TestimonialCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const contentRef = useRef<HTMLParagraphElement>(null);
   const [needsTruncation, setNeedsTruncation] = useState(false);
+  const { lang } = useLang();
+  const name = tField(lang, testimonial.name, testimonial.name);
+  const tag = tField(lang, testimonial.tag, testimonial.tag);
+  const content = tField(lang, testimonial.content, testimonial.content);
 
   useEffect(() => {
     if (contentRef.current) {
@@ -242,7 +254,7 @@ function TestimonialCard({ testimonial, onReadMore }: TestimonialCardProps) {
           !isExpanded ? "line-clamp-6" : ""
         }`}
       >
-        {testimonial.content}
+        {content}
       </p>
 
       {/* Read More Link */}
@@ -259,19 +271,20 @@ function TestimonialCard({ testimonial, onReadMore }: TestimonialCardProps) {
       <div className="flex items-center gap-3 pt-4 border-t border-drd-primary/10 relative z-10">
         <div className="relative">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-drd-primary/20 to-drd-accent/20 flex items-center justify-center ring-2 ring-drd-primary/30 flex-shrink-0">
-            <span className="text-drd-primary font-semibold text-lg">{testimonial.name.charAt(0)}</span>
+            <span className="text-drd-primary font-semibold text-lg">{name.charAt(0)}</span>
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-drd-text text-sm truncate">{testimonial.name}</p>
-          <p className="text-xs text-drd-muted truncate">{testimonial.tag}</p>
+          <p className="font-semibold text-drd-text text-sm truncate">{name}</p>
+          <p className="text-xs text-drd-muted truncate">{tag}</p>
         </div>
       </div>
     </motion.div>
   );
 }
 
-export default function TestimonialsSection() {
+export default function TestimonialsSection({ testimonials: propTestimonials }: { testimonials?: Testimonial[] }) {
+  const testimonials = (propTestimonials && propTestimonials.length > 0) ? propTestimonials : FALLBACK_TESTIMONIALS;
   const [selectedTestimonial, setSelectedTestimonial] = useState<Testimonial | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -321,7 +334,7 @@ export default function TestimonialsSection() {
   };
 
   return (
-    <section className="relative pt-64 pb-16 md:pt-72 md:py-24 overflow-hidden">
+    <section className="relative py-16 md:py-20 overflow-hidden">
       {/* Subtle off-white background */}
       <div className="absolute inset-0 bg-[#fbfcfa]" />
 
@@ -367,7 +380,7 @@ export default function TestimonialsSection() {
           {/* Scrollable Carousel */}
           <div
             ref={scrollRef}
-            className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 -mx-4 px-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 px-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {testimonials.map((testimonial, index) => (

@@ -1,7 +1,11 @@
 import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminGuard";
 
 export async function POST(req: NextRequest) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -13,6 +17,7 @@ export async function POST(req: NextRequest) {
 
     const blob = await put(`${folder}/${Date.now()}-${file.name}`, file, {
       access: "public",
+      addRandomSuffix: true,
     });
 
     return NextResponse.json({ url: blob.url });

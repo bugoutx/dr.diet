@@ -1,32 +1,45 @@
-import { auth } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 
-export default auth((req) => {
-  const isAdminPage = req.nextUrl.pathname.startsWith("/admin");
-  const isLoginPage = req.nextUrl.pathname === "/admin/login";
-  const isApiAdmin = req.nextUrl.pathname.startsWith("/api/admin");
+const AUTH_COOKIES = [
+  "__Secure-next-auth.session-token",
+  "next-auth.session-token",
+  "authjs.session-token",
+  "__Secure-authjs.session-token",
+];
 
-  // API admin routes: return 401 if not authenticated
-  if (isApiAdmin && !req.auth) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+function hasAuthCookie(req: NextRequest): boolean {
+  return AUTH_COOKIES.some((name) => req.cookies.get(name)?.value);
+}
+
+export function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+  const isLoginPage = pathname === "/admin/login";
+
+  if (isLoginPage) {
+    if (hasAuthCookie(req)) {
+      return NextResponse.redirect(new URL("/admin", req.nextUrl.origin));
+    }
+    return NextResponse.next();
   }
 
-  // Admin pages: redirect to login if not authenticated
-  if (isAdminPage && !isLoginPage && !req.auth) {
-    const loginUrl = new URL("/admin/login", req.nextUrl.origin);
-    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
-    return Response.redirect(loginUrl);
+  if (pathname.startsWith("/api/admin")) {
+    if (!hasAuthCookie(req)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.next();
   }
 
-  // Redirect logged-in users away from login
-  if (isLoginPage && req.auth) {
-    return Response.redirect(new URL("/admin", req.nextUrl.origin));
+  if (pathname.startsWith("/admin")) {
+    if (!hasAuthCookie(req)) {
+      const loginUrl = new URL("/admin/login", req.nextUrl.origin);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
   }
 
-  return undefined;
-});
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: ["/admin/:path*", "/api/admin/:path*"],

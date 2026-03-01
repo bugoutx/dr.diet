@@ -33,6 +33,9 @@ model SiteSettings {
   // Menu PDF
   menuPdfUrl     String?
   
+  // Order link (e.g. Beeorder)
+  orderOnBeeorderUrl String?
+  
   // Location
   googleMapsEmbedUrl String?
   googleMapsLinkUrl  String?
@@ -55,107 +58,203 @@ model SiteSettings {
 
 // ============ MENU ============
 model Category {
-  id          String   @id @default(cuid())
-  label       String
-  description String?
-  order       Int      @default(0)
-  meals       Meal[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(cuid())
+  nameEn        String
+  nameAr        String
+  descriptionEn String?
+  descriptionAr String?
+  order         Int      @default(0)
+  meals         Meal[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Meal {
-  id          String   @id @default(cuid())
-  categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  calories    String?  // e.g. "35g protein · 473 cal"
-  price       String?
-  tags        String[] // e.g. ["High Protein", "Low Cal"]
-  imageUrl    String
-  order       Int      @default(0)
-  link        String?  // optional link
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  heroSlots   HeroFeatured[]
+  id            String    @id @default(cuid())
+  categoryId    String
+  category      Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  nameEn        String
+  nameAr        String
+  descriptionEn String?
+  descriptionAr String?
+  proteinG      Int?
+  carbsG        Int?
+  calories      Int?
+  price         String?
+  imageUrl      String
+  order         Int       @default(0)
+  link          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  mealTags   MealTag[]
+  heroSlots  HeroFeatured[]
 }
 
-// ============ HERO (Exactly 3 slots) ============
+model MealTag {
+  id      String  @id @default(cuid())
+  mealId  String
+  meal    Meal    @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  labelEn String
+  labelAr String
+  tone    String  // "green" | "orange"
+  order   Int     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============ HERO (Exactly 3 meals, CMS-driven) ============
+// Single row for hero headline/description
+model HeroContent {
+  id          String   @id @default("singleton")
+  slogan      String   @default("")
+  title       String   @default("")
+  description String   @db.Text
+  updatedAt   DateTime @updatedAt
+}
+
+// Fallback: if DB has < 3 active HeroMeals, use static seed in public/images
+model HeroMeal {
+  id        String   @id @default(cuid())
+  title     String   // display name
+  subtitle  String?
+  calories  Int?     // calories count
+  protein   Int?     // grams
+  badge     String?  // e.g. "Rotating signature meal"
+  imageUrl  String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model HeroFeatured {
   id        String   @id @default(cuid())
   slotIndex Int      @unique // 0, 1, 2
   title     String
-  macros    String   // e.g. "35g protein · 473 cal"
+  macros    String
   tags      String[]
   imageUrl  String
   link      String?
   order     Int      @default(0)
-  
-  // Optional: link to existing Meal (if picking from DB)
   mealId    String?
   meal      Meal?    @relation(fields: [mealId], references: [id], onDelete: SetNull)
-  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 // ============ OUR MOST LOVED PLATES ============
 model Plate {
-  id          String   @id @default(cuid())
-  title       String
-  subtitle    String?
-  description String?
-  imageUrl    String
-  galleryUrls String[] // additional gallery images
-  protein     Int      // grams
-  calories    Int
-  carbs       Int?
-  tags        String[]
-  ingredients String[]
-  allergens   String[]
-  nutritionFacts Json? // { fat?, fiber?, sugar? }
-  isMostLoved Boolean @default(false)
-  order       Int     @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  title          String
+  subtitle       String?  // categoryLabel
+  description    String?  @db.Text
+  imageUrl       String
+  galleryUrls    String[]
+  protein        Int
+  calories       Int
+  carbs          Int?
+  tags           String[] // badges
+  ingredients    String[] // or ingredients text split
+  allergens      String[]
+  nutritionFacts Json?    // { fat?, fiber?, sugar? } or text
+  isMostLoved    Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
-// ============ VIDEOS (max 5 visible) ============
+// CMS-managed "Our Most Loved Plates" (bilingual EN/AR)
+model LovedPlate {
+  id             String         @id @default(cuid())
+  isActive       Boolean        @default(true)
+  sortOrder      Int            @default(0)
+  titleEn        String
+  titleAr        String
+  subtitleEn     String?
+  subtitleAr     String?
+  descriptionEn  String?        @db.Text
+  descriptionAr  String?        @db.Text
+  imageUrl       String
+  galleryUrls    String[]       // optional, max 6
+  proteinG       Int?
+  carbsG         Int?
+  calories       Int?
+  ingredientsEn  String?        @db.Text
+  ingredientsAr  String?        @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  tags           LovedPlateTag[]
+}
+
+model LovedPlateTag {
+  id        String     @id @default(cuid())
+  plateId   String
+  plate     LovedPlate @relation(fields: [plateId], references: [id], onDelete: Cascade)
+  labelEn   String
+  labelAr   String
+  tone      String     // "green" | "orange"
+  sortOrder Int        @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ============ VIDEOS / REELS (max 5 total) ============
 model Video {
-  id        String   @id @default(cuid())
-  mp4Url    String
-  posterUrl String?
-  title     String?
-  isVisible Boolean  @default(true)
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  titleEn    String?
+  titleAr    String?
+  videoUrl   String   // Blob URL after upload
+  posterUrl  String?
+  isActive   Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 // ============ TESTIMONIALS ============
 model Testimonial {
-  id       String   @id @default(cuid())
-  name     String
-  role     String   // "Gym Member", "Office Worker", etc.
-  text     String   @db.Text
-  rating   Int      @default(5) // 1-5
-  avatarUrl String?
-  order    Int      @default(0)
+  id         String   @id @default(cuid())
+  name       String
+  role       String?  // optional title e.g. "Gym Member"
+  text       String   @db.Text // quote/content
+  rating     Int      @default(5) // 1-5
+  avatarUrl  String?
+  avatarColor String? // optional; if null, derive from name initial
+  isActive   Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ============ SUBSCRIPTION PLANS ============
+model SubscriptionPlan {
+  id         String   @id @default(cuid())
+  order      Int      @default(0)
+  isActive   Boolean  @default(true)
+  isPopular  Boolean  @default(false)
+  titleEn    String
+  titleAr    String
+  subtitleEn String?
+  subtitleAr String?
+  featuresEn Json     // array of strings
+  featuresAr Json     // array of strings
+  weeklyPrice  Int?   // SYP; at least one of weekly/monthly required (validated in API)
+  monthlyPrice Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// ============ SUBSCRIPTION PLANS ============
 model Plan {
   id            String        @id @default(cuid())
   title         String
-  includes      String        // e.g. "Breakfast, Lunch, Dinner + Snack"
-  weeklyPrice   Int           // in SYP
-  monthlyPrice  Int           // in SYP
+  includes      String        // subtitle
+  weeklyPrice   Int
+  monthlyPrice  Int
   currency      String        @default("SYP")
   isPopular     Boolean       @default(false)
+  isActive      Boolean       @default(true)
   order         Int           @default(0)
   features      PlanFeature[]
   createdAt     DateTime      @default(now())

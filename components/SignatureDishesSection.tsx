@@ -3,119 +3,90 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
+import { formatMacros } from "@/lib/formatMacro";
 
-type Meal = {
+// DB-driven loved plate shape (from getSiteData.lovedPlates)
+export type LovedPlateItem = {
   id: string;
-  name: string;
-  subtitle: string;
-  description: string;
+  nameEn: string;
+  nameAr: string;
+  subtitleEn?: string;
+  subtitleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
   image: string;
-  protein: number; // in grams
-  calories: number;
-  carbs?: number; // in grams
-  tags: string[];
-  ingredients?: string[];
-  allergens?: string[];
-  nutritionFacts?: {
-    fat?: number;
-    fiber?: number;
-    sugar?: number;
-  };
-  isMostLoved?: boolean;
+  galleryUrls?: string[];
+  proteinG?: number;
+  carbsG?: number;
+  calories?: number;
+  tags: { labelEn: string; labelAr: string; tone: "green" | "orange" }[];
+  ingredientsEn?: string;
+  ingredientsAr?: string;
 };
 
-const meals: Meal[] = [
+// Internal slide type: normalized for rendering (lang applied in component)
+type PlateSlide = {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  subtitleEn?: string;
+  subtitleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  image: string;
+  proteinG?: number;
+  carbsG?: number;
+  calories?: number;
+  tags: { labelEn: string; labelAr: string; tone: "green" | "orange" }[];
+  ingredientsEn?: string;
+  ingredientsAr?: string;
+};
+
+// Fallback when DB has no loved plates
+const FALLBACK_PLATES: PlateSlide[] = [
   {
     id: "energy-plate",
-    name: "Dr.Diet Energy Plate",
-    subtitle: "Energy Dish · Chicken",
-    description: "Grilled chicken with sautéed vegetables and smart carbs for sustained energy throughout your day.",
+    nameEn: "Dr.Diet Energy Plate",
+    nameAr: "طبق الطاقة",
+    subtitleEn: "Energy Dish · Chicken",
+    subtitleAr: "طبق طاقة · دجاج",
+    descriptionEn: "Grilled chicken with sautéed vegetables and smart carbs for sustained energy throughout your day.",
+    descriptionAr: "",
     image: "/images/hero-energy-plate.jpg",
-    protein: 48,
+    proteinG: 48,
     calories: 350,
-    carbs: 25,
-    tags: ["High Protein", "Low Cal", "Balanced", "Gluten-Free"],
-    ingredients: ["Grilled chicken breast", "Sautéed vegetables", "Brown rice", "Lemon herb sauce"],
-    allergens: ["None"],
-    nutritionFacts: {
-      fat: 8,
-      fiber: 6,
-      sugar: 3,
-    },
-    isMostLoved: true,
+    carbsG: 25,
+    tags: [{ labelEn: "High Protein", labelAr: "بروتين عالي", tone: "green" }, { labelEn: "Low Cal", labelAr: "سعرات منخفضة", tone: "orange" }],
   },
   {
     id: "california-salad",
-    name: "California Salad",
-    subtitle: "Salad · High Protein",
-    description: "Arugula, tomato, avocado, rice, corn & 100g grilled chicken. Fresh, crisp, and perfectly balanced.",
+    nameEn: "California Salad",
+    nameAr: "سلطة كاليفورنيا",
+    subtitleEn: "Salad · High Protein",
+    subtitleAr: "سلطة · بروتين عالي",
+    descriptionEn: "Arugula, tomato, avocado, rice, corn & 100g grilled chicken. Fresh, crisp, and perfectly balanced.",
+    descriptionAr: "",
     image: "/images/hero-california-salad.jpg",
-    protein: 35,
+    proteinG: 35,
     calories: 473,
-    carbs: 42,
-    tags: ["High Protein", "High Fiber", "Fresh", "Vegetables"],
-    ingredients: ["Arugula", "Cherry tomatoes", "Avocado", "Brown rice", "Corn", "Grilled chicken"],
-    allergens: ["None"],
-    nutritionFacts: {
-      fat: 18,
-      fiber: 8,
-      sugar: 5,
-    },
-    isMostLoved: true,
+    carbsG: 42,
+    tags: [{ labelEn: "High Protein", labelAr: "بروتين عالي", tone: "green" }, { labelEn: "High Fiber", labelAr: "ألياف عالية", tone: "green" }],
   },
   {
     id: "radiance-smoothie",
-    name: "Radiance Smoothie",
-    subtitle: "Smoothie · Energy",
-    description: "Low-fat milk, avocado, banana & honey for clean energy. Perfect for breakfast or a midday boost.",
+    nameEn: "Radiance Smoothie",
+    nameAr: "سموذي الإشراق",
+    subtitleEn: "Smoothie · Energy",
+    subtitleAr: "سموذي · طاقة",
+    descriptionEn: "Low-fat milk, avocado, banana & honey for clean energy. Perfect for breakfast or a midday boost.",
+    descriptionAr: "",
     image: "/images/hero-radiance-smoothie.jpg",
-    protein: 12,
+    proteinG: 12,
     calories: 343,
-    carbs: 52,
-    tags: ["High Fiber", "Natural", "Energy Boost", "Dairy"],
-    ingredients: ["Low-fat milk", "Avocado", "Banana", "Honey", "Ice"],
-    allergens: ["Dairy"],
-    nutritionFacts: {
-      fat: 10,
-      fiber: 7,
-      sugar: 38,
-    },
-  },
-  {
-    id: "salmon-delight",
-    name: "Grilled Salmon Delight",
-    subtitle: "Energy Dish · Fish",
-    description: "Fresh salmon with roasted vegetables and lemon herb sauce. Rich in omega-3 and protein.",
-    image: "/images/hero-energy-plate.jpg",
-    protein: 42,
-    calories: 380,
-    carbs: 22,
-    tags: ["High Protein", "Omega-3", "Low Cal", "Seafood"],
-    ingredients: ["Fresh salmon fillet", "Roasted vegetables", "Lemon herb sauce", "Quinoa"],
-    allergens: ["Fish"],
-    nutritionFacts: {
-      fat: 15,
-      fiber: 4,
-      sugar: 2,
-    },
-  },
-  {
-    id: "quinoa-bowl",
-    name: "Mediterranean Quinoa Bowl",
-    subtitle: "Salad · Vegetarian",
-    description: "Quinoa, cucumber, feta, olives & lemon-herb dressing. A complete plant-based meal.",
-    image: "/images/hero-california-salad.jpg",
-    protein: 28,
-    calories: 420,
-    carbs: 48,
-    tags: ["Vegetarian", "High Fiber", "Balanced", "Plant-Based"],
-    ingredients: ["Quinoa", "Cucumber", "Feta cheese", "Kalamata olives", "Lemon-herb dressing"],
-    allergens: ["Dairy"],
-    nutritionFacts: {
-      fat: 16,
-      fiber: 9,
-      sugar: 4,
-    },
+    carbsG: 52,
+    tags: [{ labelEn: "High Fiber", labelAr: "ألياف عالية", tone: "green" }],
   },
 ];
 
@@ -154,11 +125,11 @@ function MacroTile({ label, value, unit, iconType, isOrange = false }: { label: 
   );
 }
 
-// Helper component for Benefit Tile
-function BenefitTile({ benefits }: { benefits: string[] }) {
+// Helper component for Benefit Tile (tags with tone + bilingual label)
+function BenefitTile({ tags, lang }: { tags: { labelEn: string; labelAr: string; tone: "green" | "orange" }[]; lang: "en" | "ar" }) {
+  const displayTags = tags.slice(0, 5);
   return (
     <div className="relative bg-gradient-to-br from-emerald-50/60 via-emerald-50/40 to-drd-accent/10 backdrop-blur-sm rounded-2xl p-4 border border-emerald-200/40 shadow-sm hover:shadow-md transition-all duration-300 hover:border-drd-primary/50 overflow-hidden">
-      {/* Soft gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-drd-primary/5 via-transparent to-drd-accent/5 pointer-events-none" />
       <div className="relative">
         <div className="flex items-center gap-2 mb-3">
@@ -166,12 +137,16 @@ function BenefitTile({ benefits }: { benefits: string[] }) {
           <span className="text-xs font-semibold text-drd-text/70 uppercase tracking-wide">Benefits</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {benefits.slice(0, 3).map((benefit, idx) => (
+          {displayTags.map((tag, idx) => (
             <span
               key={idx}
-              className="inline-block px-2 py-1 bg-drd-primary/15 text-drd-primary text-[10px] font-semibold rounded-full"
+              className={`inline-block px-2 py-1 text-[10px] font-semibold rounded-full ${
+                tag.tone === "orange"
+                  ? "bg-drd-accent/15 text-drd-accent"
+                  : "bg-drd-primary/15 text-drd-primary"
+              }`}
             >
-              {benefit}
+              {tField(lang, tag.labelEn, tag.labelAr)}
             </span>
           ))}
         </div>
@@ -220,43 +195,41 @@ function AccordionItem({ title, children, isOpen, onToggle }: { title: string; c
   );
 }
 
-// Meal Slide Component
-function MealSlide({ meal }: { meal: Meal }) {
+// Plate Slide Component (DB-driven loved plate)
+function MealSlide({ plate }: { plate: PlateSlide }) {
+  const { lang } = useLang();
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
 
   const toggleAccordion = (id: string) => {
     setOpenAccordion(openAccordion === id ? null : id);
   };
 
-  const topTags = meal.tags.slice(0, 5);
+  const name = tField(lang, plate.nameEn, plate.nameAr);
+  const subtitle = tField(lang, plate.subtitleEn, plate.subtitleAr);
+  const description = tField(lang, plate.descriptionEn, plate.descriptionAr);
+  const tags = plate.tags ?? [];
+  const macros = formatMacros(lang, { proteinG: plate.proteinG, carbsG: plate.carbsG, calories: plate.calories });
+  const hasMacros = macros.length > 0;
+  const ingredientsText = tField(lang, plate.ingredientsEn, plate.ingredientsAr);
+  const hasIngredients = ingredientsText.trim().length > 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
       {/* LEFT COLUMN: Media Stack */}
       <div className="space-y-4">
-        {/* Large Hero Image */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="relative rounded-3xl overflow-hidden shadow-xl border border-white/60 bg-white/80 backdrop-blur-sm group hover:shadow-2xl hover:shadow-drd-primary/15 transition-all duration-300"
         >
-          {/* Gradient border effect */}
           <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-drd-primary/30 via-transparent to-drd-accent/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none -z-10" />
-          {/* Decorative green blob */}
           <div className="absolute -top-12 -left-12 w-48 h-48 bg-drd-primary/8 rounded-full blur-3xl pointer-events-none" />
-          {meal.isMostLoved && (
-            <div className="absolute top-4 left-4 z-10">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-xs font-bold text-drd-primary shadow-lg border border-drd-primary/20">
-                <span>⭐</span>
-                <span>Most Loved</span>
-              </span>
-            </div>
-          )}
           <div className="relative aspect-[4/3] w-full">
             <Image
-              src={meal.image}
-              alt={meal.name}
+              src={plate.image}
+              unoptimized={plate.image.startsWith("http")}
+              alt={name || "Dish"}
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-105"
               sizes="(max-width: 1024px) 100vw, 50vw"
@@ -265,27 +238,31 @@ function MealSlide({ meal }: { meal: Meal }) {
           </div>
         </motion.div>
 
-        {/* Two Smaller Tiles */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Macro Highlights Tile */}
-          <MacroTile
-            label="Protein"
-            value={meal.protein}
-            unit="g"
-            iconType="protein"
-            isOrange={false}
-          />
-          <MacroTile
-            label="Calories"
-            value={meal.calories}
-            unit="cal"
-            iconType="calories"
-            isOrange={true}
-          />
-        </div>
+        {/* Macro Tiles - only when we have at least one */}
+        {hasMacros && (
+          <div className="grid grid-cols-2 gap-4">
+            {plate.proteinG != null && (
+              <MacroTile
+                label={lang === "ar" ? "بروتين" : "Protein"}
+                value={plate.proteinG}
+                unit={lang === "ar" ? "غ" : "g"}
+                iconType="protein"
+                isOrange={false}
+              />
+            )}
+            {plate.calories != null && (
+              <MacroTile
+                label={lang === "ar" ? "كال" : "Calories"}
+                value={plate.calories}
+                unit={lang === "ar" ? "كال" : "cal"}
+                iconType="calories"
+                isOrange={true}
+              />
+            )}
+          </div>
+        )}
 
-        {/* Benefit Tile (full width) */}
-        <BenefitTile benefits={meal.tags} />
+        {tags.length > 0 && <BenefitTile tags={tags} lang={lang} />}
       </div>
 
       {/* RIGHT COLUMN: Details Panel */}
@@ -296,129 +273,68 @@ function MealSlide({ meal }: { meal: Meal }) {
         className="flex flex-col justify-center"
       >
         <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl p-6 md:p-8 border border-white/60 shadow-lg overflow-hidden">
-          {/* Gradient border effect */}
           <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-drd-primary/20 via-transparent to-drd-accent/20 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-          {/* Top accent strip */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-drd-primary via-drd-primary/60 to-drd-accent rounded-t-3xl" />
-          {/* Decorative orange blob */}
           <div className="absolute -top-16 -right-16 w-56 h-56 bg-drd-accent/8 rounded-full blur-3xl pointer-events-none" />
-          
+
           <div className="relative">
-          {/* Title & Subtitle */}
-          <div className="mb-4">
-            <h3 className="text-3xl md:text-4xl font-bold font-heading text-drd-text mb-2 tracking-tight">
-              {meal.name}
-            </h3>
-            <p className="text-sm font-medium text-drd-text/60 uppercase tracking-wide">
-              {meal.subtitle}
-            </p>
-          </div>
-
-          {/* Description */}
-          <p className="text-base text-drd-text/80 leading-relaxed mb-6">
-            {meal.description}
-          </p>
-
-          {/* Nutrition Chips */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {topTags.map((tag) => {
-              const isOrangeTag = tag.toLowerCase().includes("low cal") || tag.toLowerCase().includes("energy") || tag.toLowerCase().includes("boost");
-              return (
-                <span
-                  key={tag}
-                  className={`inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-full border transition-all duration-300 ${
-                    isOrangeTag
-                      ? "bg-gradient-to-r from-drd-accent/15 to-drd-accent/10 text-drd-accent border-drd-accent/30 hover:shadow-[0_0_8px_rgba(255,138,42,0.3)]"
-                      : "bg-gradient-to-r from-drd-primary/15 to-drd-primary/10 text-drd-primary border-drd-primary/30 hover:shadow-[0_0_8px_rgba(140,191,79,0.3)]"
-                  } hover:scale-105`}
-                >
-                  {tag}
-                </span>
-              );
-            })}
-          </div>
-
-          {/* Price & Calories Line */}
-          <div className="flex items-center justify-between py-4 mb-6 border-y border-slate-200/60">
-            <div>
-              <p className="text-sm text-drd-text/60 mb-1">Nutrition per serving</p>
-              <p className="text-lg font-bold text-drd-primary">
-                {meal.protein}g protein · {meal.calories} cal
-                {meal.carbs && ` · ${meal.carbs}g carbs`}
-              </p>
-            </div>
-          </div>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            <button
-              type="button"
-              className="flex-1 px-6 py-3.5 bg-drd-primary text-white rounded-full font-semibold hover:bg-drd-primary-dark transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-drd-primary/30 hover:scale-[1.02]"
-            >
-              Order Now
-            </button>
-            <button
-              type="button"
-              className="relative flex-1 px-6 py-3.5 bg-white border-2 border-drd-primary text-drd-primary rounded-full font-semibold hover:bg-drd-primary/5 transition-all duration-300 overflow-hidden group"
-            >
-              {/* Gradient border on hover */}
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-drd-primary via-drd-primary/80 to-drd-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
-              {/* Inner glow on hover */}
-              <div className="absolute inset-0 rounded-full bg-drd-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <span className="relative z-10">View Details</span>
-            </button>
-          </div>
-
-          {/* Accordions */}
-          <div className="space-y-0">
-            {meal.ingredients && (
-              <AccordionItem
-                title="Ingredients"
-                isOpen={openAccordion === "ingredients"}
-                onToggle={() => toggleAccordion("ingredients")}
-              >
-                <ul className="list-disc list-inside space-y-1 text-drd-text/70">
-                  {meal.ingredients.map((ing, idx) => (
-                    <li key={idx}>{ing}</li>
-                  ))}
-                </ul>
-              </AccordionItem>
-            )}
-
-            {meal.allergens && (
-              <AccordionItem
-                title="Allergens"
-                isOpen={openAccordion === "allergens"}
-                onToggle={() => toggleAccordion("allergens")}
-              >
-                <p className="text-drd-text/70">
-                  {meal.allergens.length > 0 && meal.allergens[0] !== "None"
-                    ? meal.allergens.join(", ")
-                    : "No known allergens"}
+            <div className="mb-4">
+              <h3 className="text-3xl md:text-4xl font-bold font-heading text-drd-text mb-2 tracking-tight">
+                {name}
+              </h3>
+              {(subtitle?.trim()) ? (
+                <p className="text-sm font-medium text-drd-text/60 uppercase tracking-wide">
+                  {subtitle}
                 </p>
-              </AccordionItem>
+              ) : null}
+            </div>
+
+            {(description?.trim()) ? (
+              <p className="text-base text-drd-text/80 leading-relaxed mb-6">
+                {description}
+              </p>
+            ) : null}
+
+            {/* Tag chips */}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {tags.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className={`inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-full border transition-all duration-300 ${
+                      tag.tone === "orange"
+                        ? "bg-gradient-to-r from-drd-accent/15 to-drd-accent/10 text-drd-accent border-drd-accent/30"
+                        : "bg-gradient-to-r from-drd-primary/15 to-drd-primary/10 text-drd-primary border-drd-primary/30"
+                    } hover:scale-105`}
+                  >
+                    {tField(lang, tag.labelEn, tag.labelAr)}
+                  </span>
+                ))}
+              </div>
             )}
 
-            {meal.nutritionFacts && (
-              <AccordionItem
-                title="Full Nutrition Facts"
-                isOpen={openAccordion === "nutrition"}
-                onToggle={() => toggleAccordion("nutrition")}
-              >
-                <div className="space-y-2 text-drd-text/70">
-                  {meal.nutritionFacts.fat !== undefined && (
-                    <p>Fat: {meal.nutritionFacts.fat}g</p>
-                  )}
-                  {meal.nutritionFacts.fiber !== undefined && (
-                    <p>Fiber: {meal.nutritionFacts.fiber}g</p>
-                  )}
-                  {meal.nutritionFacts.sugar !== undefined && (
-                    <p>Sugar: {meal.nutritionFacts.sugar}g</p>
-                  )}
-                </div>
-              </AccordionItem>
+            {/* Nutrition line - only when we have macros */}
+            {hasMacros && (
+              <div className="py-4 mb-6 border-y border-slate-200/60">
+                <p className="text-sm text-drd-text/60 mb-1">{lang === "ar" ? "التغذية لكل حصة" : "Nutrition per serving"}</p>
+                <p className="text-lg font-bold text-drd-primary">
+                  {macros.join(" · ")}
+                </p>
+              </div>
             )}
-          </div>
+
+            {/* Ingredients accordion only - no Order Now, View Details, or Allergens */}
+            <div className="space-y-0">
+              {hasIngredients && (
+                <AccordionItem
+                  title={lang === "ar" ? "المكونات" : "Ingredients"}
+                  isOpen={openAccordion === "ingredients"}
+                  onToggle={() => toggleAccordion("ingredients")}
+                >
+                  <p className="text-drd-text/70 whitespace-pre-wrap">{ingredientsText}</p>
+                </AccordionItem>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
@@ -492,7 +408,26 @@ function DotsIndicator({ count, currentIndex, onDotClick }: { count: number; cur
   );
 }
 
-export default function SignatureDishesSection() {
+export default function SignatureDishesSection({ plates: propPlates }: { plates?: LovedPlateItem[] }) {
+  const plates: PlateSlide[] =
+    propPlates && propPlates.length > 0
+      ? propPlates.map((p) => ({
+          id: p.id,
+          nameEn: p.nameEn,
+          nameAr: p.nameAr,
+          subtitleEn: p.subtitleEn,
+          subtitleAr: p.subtitleAr,
+          descriptionEn: p.descriptionEn,
+          descriptionAr: p.descriptionAr,
+          image: p.image,
+          proteinG: p.proteinG,
+          carbsG: p.carbsG,
+          calories: p.calories,
+          tags: p.tags ?? [],
+          ingredientsEn: p.ingredientsEn,
+          ingredientsAr: p.ingredientsAr,
+        }))
+      : FALLBACK_PLATES;
   const [currentIndex, setCurrentIndex] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -501,11 +436,11 @@ export default function SignatureDishesSection() {
   const minSwipeDistance = 50;
 
   const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % meals.length);
+    setCurrentIndex((prev) => (prev + 1) % plates.length);
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + meals.length) % meals.length);
+    setCurrentIndex((prev) => (prev - 1 + plates.length) % plates.length);
   };
 
   const goToSlide = (index: number) => {
@@ -535,7 +470,6 @@ export default function SignatureDishesSection() {
     }
   };
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
@@ -550,7 +484,7 @@ export default function SignatureDishesSection() {
   }, []);
 
   const canGoPrev = currentIndex > 0;
-  const canGoNext = currentIndex < meals.length - 1;
+  const canGoNext = currentIndex < plates.length - 1;
 
   return (
     <section id="signature-dishes" className="relative py-16 md:py-24 bg-white overflow-hidden">
@@ -605,13 +539,13 @@ export default function SignatureDishesSection() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.4, ease: "easeInOut" }}
               >
-                <MealSlide meal={meals[currentIndex]} />
+                <MealSlide plate={plates[currentIndex]} />
               </motion.div>
             </AnimatePresence>
           </div>
 
           {/* Dots Indicator */}
-          <DotsIndicator count={meals.length} currentIndex={currentIndex} onDotClick={goToSlide} />
+          <DotsIndicator count={plates.length} currentIndex={currentIndex} onDotClick={goToSlide} />
         </div>
       </div>
     </section>

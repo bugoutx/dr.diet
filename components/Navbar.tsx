@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useLang } from "@/lib/LangContext";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const { lang, setLang } = useLang();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,6 +48,22 @@ export default function Navbar() {
           <a href="#contact" className="text-drd-text hover:text-drd-primary transition-colors">
             Contact
           </a>
+          <div className="flex items-center gap-1 border border-drd-primary/30 rounded-full p-0.5">
+            <button
+              type="button"
+              onClick={() => setLang("en")}
+              className={`rounded-full px-3 py-1 text-sm font-medium transition ${lang === "en" ? "bg-drd-primary text-white" : "text-drd-text/70 hover:text-drd-primary"}`}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              onClick={() => setLang("ar")}
+              className={`rounded-full px-3 py-1 text-sm font-medium transition ${lang === "ar" ? "bg-drd-primary text-white" : "text-drd-text/70 hover:text-drd-primary"}`}
+            >
+              AR
+            </button>
+          </div>
         </div>
       </div>
     </nav>

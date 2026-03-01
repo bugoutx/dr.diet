@@ -1,6 +1,13 @@
 "use client";
 
-export default function FooterSection() {
+type FooterSettings = {
+  instagramUrl?: string | null;
+  instagramHandle?: string | null;
+};
+
+export default function FooterSection({ settings }: { settings?: FooterSettings | null }) {
+  const instagramHref = settings?.instagramUrl || "https://instagram.com/dr.diet.sy";
+  const instagramLabel = settings?.instagramHandle || "Instagram";
   const handleOrderClick = () => {
     const contactSection = document.getElementById("contact");
     if (contactSection) {
@@ -43,12 +50,12 @@ export default function FooterSection() {
               Order
             </button>
             <a
-              href="https://instagram.com/dr.diet.sy"
+              href={instagramHref}
               target="_blank"
               rel="noopener noreferrer"
               className="text-white/80 hover:text-white text-sm font-medium transition-colors"
             >
-              Instagram
+              {instagramLabel}
             </a>
             <a
               href="#contact"

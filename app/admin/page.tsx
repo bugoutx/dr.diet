@@ -1,11 +1,12 @@
 import Link from "next/link";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 const links = [
   { href: "/admin/settings", label: "Settings", desc: "Phone, Instagram, menu PDF, maps, section toggles" },
   { href: "/admin/categories", label: "Categories", desc: "Menu categories with drag-drop order" },
   { href: "/admin/meals", label: "Meals", desc: "CRUD meals per category" },
   { href: "/admin/hero", label: "Hero", desc: "3 featured meals for hero section" },
-  { href: "/admin/plates", label: "Our Most-Loved Plates", desc: "Signature dishes carousel" },
+  { href: "/admin/loved-plates", label: "Our Most Loved Plates", desc: "Manage signature dishes carousel (EN/AR, tags, images)" },
   { href: "/admin/videos", label: "Videos", desc: "Max 5 videos, autoplay on landing" },
   { href: "/admin/testimonials", label: "Testimonials", desc: "Customer reviews" },
   { href: "/admin/plans", label: "Subscription Plans", desc: "Weekly/monthly plans" },
@@ -14,9 +15,12 @@ const links = [
 export default function AdminDashboardPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold font-heading text-drd-text mb-6">
-        Admin Dashboard
-      </h1>
+      <AdminPageHeader
+        title="Admin Dashboard"
+        backLabel="Dashboard"
+        backHref="/admin"
+        showBack={false}
+      />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {links.map((link) => (
           <Link

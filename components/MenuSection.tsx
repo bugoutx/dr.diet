@@ -3,247 +3,120 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { useLang } from "@/lib/LangContext";
+import { formatMacros } from "@/lib/formatMacro";
+import { formatNumber } from "@/lib/formatNumber";
+import { tField } from "@/lib/tField";
+
+export type MealTagShape = { labelEn: string; labelAr: string; tone: "green" | "orange" };
 
 export type MenuItem = {
   id: string;
-  name: string;
-  description?: string;
-  calories?: string;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  proteinG?: number;
+  carbsG?: number;
+  calories?: number;
   price?: string;
-  tags?: string[];
+  tags?: MealTagShape[];
   image: string;
 };
 
 export type MenuCategory = {
   id: string;
-  label: string;
-  description?: string;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
   items: MenuItem[];
 };
 
-const categories: MenuCategory[] = [
+// Fallback when DB has no categories (bilingual + structured macros)
+const FALLBACK_CATEGORIES: MenuCategory[] = [
   {
     id: "salads",
-    label: "Salads",
-    description:
-      "Fresh, crisp salads packed with premium vegetables, proteins, and our house-made dressings. Each salad is carefully balanced for optimal nutrition and flavor.",
+    nameEn: "Salads",
+    nameAr: "سلطات",
+    descriptionEn: "Fresh, crisp salads packed with premium vegetables, proteins, and our house-made dressings.",
+    descriptionAr: undefined,
     items: [
-      {
-        id: "california-salad",
-        name: "California Salad",
-        description: "Arugula, tomato, avocado, rice, corn & grilled chicken",
-        calories: "35g protein · 473 cal",
-        tags: ["High Protein"],
-        image: "/images/hero-california-salad.jpg",
-      },
-      {
-        id: "mediterranean-quinoa",
-        name: "Mediterranean Quinoa",
-        description: "Quinoa, cucumber, feta, olives & lemon-herb dressing",
-        calories: "28g protein · 420 cal",
-        tags: ["High Fiber"],
-        image: "/images/hero-energy-plate.jpg",
-      },
-      {
-        id: "garden-fresh-bowl",
-        name: "Garden Fresh Bowl",
-        description: "Mixed greens, cherry tomatoes, bell peppers & tahini",
-        calories: "22g protein · 320 cal",
-        tags: ["Low Cal"],
-        image: "/images/hero-radiance-smoothie.jpg",
-      },
+      { id: "california-salad", nameEn: "California Salad", nameAr: "سلطة كاليفورنيا", descriptionEn: "Arugula, tomato, avocado, rice, corn & grilled chicken", descriptionAr: undefined, proteinG: 35, carbsG: 22, calories: 473, tags: [{ labelEn: "High Protein", labelAr: "بروتين عالي", tone: "green" as const }], image: "/images/hero-california-salad.jpg" },
+      { id: "mediterranean-quinoa", nameEn: "Mediterranean Quinoa", nameAr: "كينوا متوسطية", descriptionEn: "Quinoa, cucumber, feta, olives & lemon-herb dressing", descriptionAr: undefined, proteinG: 28, calories: 420, tags: [{ labelEn: "High Fiber", labelAr: "ألياف عالية", tone: "green" as const }], image: "/images/hero-energy-plate.jpg" },
+      { id: "garden-fresh-bowl", nameEn: "Garden Fresh Bowl", nameAr: "سلطة الحديقة", descriptionEn: "Mixed greens, cherry tomatoes, bell peppers & tahini", descriptionAr: undefined, proteinG: 22, calories: 320, tags: [{ labelEn: "Low Cal", labelAr: "سعرات منخفضة", tone: "orange" as const }], image: "/images/hero-radiance-smoothie.jpg" },
     ],
   },
   {
     id: "energy-dishes",
-    label: "Energy Dishes",
-    description:
-      "High-protein plates featuring grilled chicken, lean meats, or fresh fish, paired with sautéed vegetables and smart carbohydrates for sustained energy.",
+    nameEn: "Energy Dishes",
+    nameAr: "أطباق الطاقة",
+    descriptionEn: "High-protein plates featuring grilled chicken, lean meats, or fresh fish.",
+    descriptionAr: undefined,
     items: [
-      {
-        id: "energy-plate",
-        name: "Dr.Diet Energy Plate",
-        description: "Grilled chicken, sautéed vegetables & smart carbs",
-        calories: "48g protein · 350 cal",
-        tags: ["High Protein"],
-        image: "/images/hero-energy-plate.jpg",
-      },
-      {
-        id: "grilled-salmon",
-        name: "Grilled Salmon Delight",
-        description: "Fresh salmon, roasted vegetables & lemon herb sauce",
-        calories: "42g protein · 380 cal",
-        tags: ["High Protein"],
-        image: "/images/hero-california-salad.jpg",
-      },
-      {
-        id: "beef-power-bowl",
-        name: "Beef Power Bowl",
-        description: "Lean beef, brown rice, broccoli & teriyaki glaze",
-        calories: "45g protein · 420 cal",
-        tags: ["High Protein"],
-        image: "/images/hero-radiance-smoothie.jpg",
-      },
+      { id: "energy-plate", nameEn: "Dr.Diet Energy Plate", nameAr: "طبق الطاقة", descriptionEn: "Grilled chicken, sautéed vegetables & smart carbs", descriptionAr: undefined, proteinG: 48, calories: 350, tags: [{ labelEn: "High Protein", labelAr: "بروتين عالي", tone: "green" as const }], image: "/images/hero-energy-plate.jpg" },
+      { id: "grilled-salmon", nameEn: "Grilled Salmon Delight", nameAr: "سلمون مشوي", descriptionEn: "Fresh salmon, roasted vegetables & lemon herb sauce", descriptionAr: undefined, proteinG: 42, calories: 380, tags: [{ labelEn: "High Protein", labelAr: "بروتين عالي", tone: "green" as const }], image: "/images/hero-california-salad.jpg" },
+      { id: "beef-power-bowl", nameEn: "Beef Power Bowl", nameAr: "طبق لحم بقري", descriptionEn: "Lean beef, brown rice, broccoli & teriyaki glaze", descriptionAr: undefined, proteinG: 45, calories: 420, tags: [{ labelEn: "High Protein", labelAr: "بروتين عالي", tone: "green" as const }], image: "/images/hero-radiance-smoothie.jpg" },
     ],
   },
   {
     id: "sandwiches",
-    label: "Sandwiches",
-    description:
-      "Satisfying sandwiches made with quality bread, fresh ingredients, and premium proteins. Perfect for a quick, nutritious meal on the go.",
+    nameEn: "Sandwiches",
+    nameAr: "سندويشات",
+    descriptionEn: "Satisfying sandwiches made with quality bread and premium proteins.",
+    descriptionAr: undefined,
     items: [
-      {
-        id: "chicken-avocado-wrap",
-        name: "Chicken Avocado Wrap",
-        description: "Grilled chicken, avocado, lettuce & whole grain wrap",
-        calories: "32g protein · 450 cal",
-        tags: ["High Protein"],
-        image: "/images/hero-california-salad.jpg",
-      },
-      {
-        id: "turkey-club",
-        name: "Turkey Club",
-        description: "Roasted turkey, bacon, lettuce, tomato & whole wheat",
-        calories: "28g protein · 380 cal",
-        tags: ["High Protein"],
-        image: "/images/hero-energy-plate.jpg",
-      },
-      {
-        id: "veggie-delight",
-        name: "Veggie Delight",
-        description: "Hummus, roasted vegetables, sprouts & multigrain bread",
-        calories: "18g protein · 320 cal",
-        tags: ["Low Cal"],
-        image: "/images/hero-radiance-smoothie.jpg",
-      },
+      { id: "chicken-avocado-wrap", nameEn: "Chicken Avocado Wrap", nameAr: "لفافة دجاج وأفوكادو", descriptionEn: "Grilled chicken, avocado, lettuce & whole grain wrap", descriptionAr: undefined, proteinG: 32, calories: 450, tags: [{ labelEn: "High Protein", labelAr: "بروتين عالي", tone: "green" as const }], image: "/images/hero-california-salad.jpg" },
+      { id: "turkey-club", nameEn: "Turkey Club", nameAr: "تركي كلوب", descriptionEn: "Roasted turkey, bacon, lettuce, tomato & whole wheat", descriptionAr: undefined, proteinG: 28, calories: 380, tags: [{ labelEn: "High Protein", labelAr: "بروتين عالي", tone: "green" as const }], image: "/images/hero-energy-plate.jpg" },
+      { id: "veggie-delight", nameEn: "Veggie Delight", nameAr: "نباتي لذيذ", descriptionEn: "Hummus, roasted vegetables, sprouts & multigrain bread", descriptionAr: undefined, proteinG: 18, calories: 320, tags: [{ labelEn: "Low Cal", labelAr: "سعرات منخفضة", tone: "orange" as const }], image: "/images/hero-radiance-smoothie.jpg" },
     ],
   },
   {
     id: "breakfast",
-    label: "Breakfast & Toast",
-    description:
-      "Start your day right with our energizing breakfast options and artisanal toasts. Fuel your morning with balanced nutrition and delicious flavors.",
+    nameEn: "Breakfast & Toast",
+    nameAr: "فطور وتوست",
+    descriptionEn: "Energizing breakfast options and artisanal toasts.",
+    descriptionAr: undefined,
     items: [
-      {
-        id: "protein-power-toast",
-        name: "Protein Power Toast",
-        description: "Whole grain toast, eggs, avocado & cherry tomatoes",
-        calories: "25g protein · 380 cal",
-        tags: ["High Protein"],
-        image: "/images/hero-california-salad.jpg",
-      },
-      {
-        id: "overnight-oats",
-        name: "Overnight Oats Bowl",
-        description: "Oats, Greek yogurt, berries & honey",
-        calories: "20g protein · 350 cal",
-        tags: ["High Fiber"],
-        image: "/images/hero-energy-plate.jpg",
-      },
-      {
-        id: "avocado-smash-toast",
-        name: "Avocado Smash Toast",
-        description: "Sourdough, smashed avocado, feta & poached egg",
-        calories: "15g protein · 320 cal",
-        tags: ["Low Cal"],
-        image: "/images/hero-radiance-smoothie.jpg",
-      },
+      { id: "protein-power-toast", nameEn: "Protein Power Toast", nameAr: "توست البروتين", descriptionEn: "Whole grain toast, eggs, avocado & cherry tomatoes", descriptionAr: undefined, proteinG: 25, calories: 380, tags: [{ labelEn: "High Protein", labelAr: "بروتين عالي", tone: "green" as const }], image: "/images/hero-california-salad.jpg" },
+      { id: "overnight-oats", nameEn: "Overnight Oats Bowl", nameAr: "شوفان ليلاً", descriptionEn: "Oats, Greek yogurt, berries & honey", descriptionAr: undefined, proteinG: 20, calories: 350, tags: [{ labelEn: "High Fiber", labelAr: "ألياف عالية", tone: "green" as const }], image: "/images/hero-energy-plate.jpg" },
+      { id: "avocado-smash-toast", nameEn: "Avocado Smash Toast", nameAr: "توست أفوكادو", descriptionEn: "Sourdough, smashed avocado, feta & poached egg", descriptionAr: undefined, proteinG: 15, calories: 320, tags: [{ labelEn: "Low Cal", labelAr: "سعرات منخفضة", tone: "orange" as const }], image: "/images/hero-radiance-smoothie.jpg" },
     ],
   },
   {
     id: "smoothies",
-    label: "Smoothies & Juices",
-    description:
-      "Fresh, natural beverages packed with vitamins and nutrients. Our smoothies and juices are made with real fruits and vegetables for clean, refreshing energy.",
+    nameEn: "Smoothies & Juices",
+    nameAr: "سموذي وعصائر",
+    descriptionEn: "Fresh beverages packed with vitamins and nutrients.",
+    descriptionAr: undefined,
     items: [
-      {
-        id: "radiance-smoothie",
-        name: "Radiance Smoothie",
-        description: "Low-fat milk, avocado, banana & honey",
-        calories: "12g protein · 343 cal",
-        tags: ["High Fiber"],
-        image: "/images/hero-california-salad.jpg",
-      },
-      {
-        id: "green-power-juice",
-        name: "Green Power Juice",
-        description: "Spinach, apple, cucumber, lemon & ginger",
-        calories: "5g protein · 180 cal",
-        tags: ["Low Cal"],
-        image: "/images/hero-energy-plate.jpg",
-      },
-      {
-        id: "protein-boost-smoothie",
-        name: "Protein Boost Smoothie",
-        description: "Protein powder, berries, almond milk & chia seeds",
-        calories: "28g protein · 320 cal",
-        tags: ["High Protein"],
-        image: "/images/hero-radiance-smoothie.jpg",
-      },
+      { id: "radiance-smoothie", nameEn: "Radiance Smoothie", nameAr: "سموذي الإشراق", descriptionEn: "Low-fat milk, avocado, banana & honey", descriptionAr: undefined, proteinG: 12, calories: 343, tags: [{ labelEn: "High Fiber", labelAr: "ألياف عالية", tone: "green" as const }], image: "/images/hero-california-salad.jpg" },
+      { id: "green-power-juice", nameEn: "Green Power Juice", nameAr: "عصير الطاقة الخضراء", descriptionEn: "Spinach, apple, cucumber, lemon & ginger", descriptionAr: undefined, proteinG: 5, calories: 180, tags: [{ labelEn: "Low Cal", labelAr: "سعرات منخفضة", tone: "orange" as const }], image: "/images/hero-energy-plate.jpg" },
+      { id: "protein-boost-smoothie", nameEn: "Protein Boost Smoothie", nameAr: "سموذي البروتين", descriptionEn: "Protein powder, berries, almond milk & chia seeds", descriptionAr: undefined, proteinG: 28, calories: 320, tags: [{ labelEn: "High Protein", labelAr: "بروتين عالي", tone: "green" as const }], image: "/images/hero-radiance-smoothie.jpg" },
     ],
   },
   {
     id: "snacks",
-    label: "Smart Snacks",
-    description:
-      "Healthy, satisfying snacks perfect for between meals. Nutrient-dense options that keep you energized without compromising your wellness goals.",
+    nameEn: "Smart Snacks",
+    nameAr: "وجبات خفيفة",
+    descriptionEn: "Healthy, satisfying snacks between meals.",
+    descriptionAr: undefined,
     items: [
-      {
-        id: "protein-energy-balls",
-        name: "Protein Energy Balls",
-        description: "Dates, almonds, protein powder & coconut",
-        calories: "8g protein · 120 cal",
-        tags: ["High Protein"],
-        image: "/images/hero-california-salad.jpg",
-      },
-      {
-        id: "veggie-sticks-hummus",
-        name: "Veggie Sticks & Hummus",
-        description: "Fresh vegetables & house-made hummus",
-        calories: "6g protein · 150 cal",
-        tags: ["Low Cal"],
-        image: "/images/hero-energy-plate.jpg",
-      },
-      {
-        id: "trail-mix-delight",
-        name: "Trail Mix Delight",
-        description: "Nuts, seeds, dried fruits & dark chocolate chips",
-        calories: "10g protein · 200 cal",
-        tags: ["High Fiber"],
-        image: "/images/hero-radiance-smoothie.jpg",
-      },
+      { id: "protein-energy-balls", nameEn: "Protein Energy Balls", nameAr: "كرات الطاقة", descriptionEn: "Dates, almonds, protein powder & coconut", descriptionAr: undefined, proteinG: 8, calories: 120, tags: [{ labelEn: "High Protein", labelAr: "بروتين عالي", tone: "green" as const }], image: "/images/hero-california-salad.jpg" },
+      { id: "veggie-sticks-hummus", nameEn: "Veggie Sticks & Hummus", nameAr: "خضار وحمص", descriptionEn: "Fresh vegetables & house-made hummus", descriptionAr: undefined, proteinG: 6, calories: 150, tags: [{ labelEn: "Low Cal", labelAr: "سعرات منخفضة", tone: "orange" as const }], image: "/images/hero-energy-plate.jpg" },
+      { id: "trail-mix-delight", nameEn: "Trail Mix Delight", nameAr: "مزيج المكسرات", descriptionEn: "Nuts, seeds, dried fruits & dark chocolate chips", descriptionAr: undefined, proteinG: 10, calories: 200, tags: [{ labelEn: "High Fiber", labelAr: "ألياف عالية", tone: "green" as const }], image: "/images/hero-radiance-smoothie.jpg" },
     ],
   },
   {
     id: "sauces",
-    label: "Sauces",
-    description:
-      "Enhance your meals with our house-made sauces. Each sauce is crafted with wholesome ingredients to add flavor without excess calories.",
+    nameEn: "Sauces",
+    nameAr: "صلصات",
+    descriptionEn: "House-made sauces with wholesome ingredients.",
+    descriptionAr: undefined,
     items: [
-      {
-        id: "lemon-herb-dressing",
-        name: "Lemon Herb Dressing",
-        description: "Fresh lemon, herbs, olive oil & garlic",
-        calories: "2g protein · 45 cal",
-        tags: ["Low Cal"],
-        image: "/images/hero-california-salad.jpg",
-      },
-      {
-        id: "tahini-sauce",
-        name: "Tahini Sauce",
-        description: "Tahini, lemon, garlic & water",
-        calories: "4g protein · 80 cal",
-        tags: ["High Fiber"],
-        image: "/images/hero-energy-plate.jpg",
-      },
-      {
-        id: "spicy-chipotle",
-        name: "Spicy Chipotle",
-        description: "Chipotle peppers, yogurt & lime",
-        calories: "1g protein · 35 cal",
-        tags: ["Low Cal"],
-        image: "/images/hero-radiance-smoothie.jpg",
-      },
+      { id: "lemon-herb-dressing", nameEn: "Lemon Herb Dressing", nameAr: "صلصة الليمون والأعشاب", descriptionEn: "Fresh lemon, herbs, olive oil & garlic", descriptionAr: undefined, proteinG: 2, calories: 45, tags: [{ labelEn: "Low Cal", labelAr: "سعرات منخفضة", tone: "orange" as const }], image: "/images/hero-california-salad.jpg" },
+      { id: "tahini-sauce", nameEn: "Tahini Sauce", nameAr: "صلصة الطحينية", descriptionEn: "Tahini, lemon, garlic & water", descriptionAr: undefined, proteinG: 4, calories: 80, tags: [{ labelEn: "High Fiber", labelAr: "ألياف عالية", tone: "green" as const }], image: "/images/hero-energy-plate.jpg" },
+      { id: "spicy-chipotle", nameEn: "Spicy Chipotle", nameAr: "تشيبوتلي حار", descriptionEn: "Chipotle peppers, yogurt & lime", descriptionAr: undefined, proteinG: 1, calories: 35, tags: [{ labelEn: "Low Cal", labelAr: "سعرات منخفضة", tone: "orange" as const }], image: "/images/hero-radiance-smoothie.jpg" },
     ],
   },
 ];
@@ -255,7 +128,9 @@ const itemVariants = {
   hover: { y: -4, scale: 1.02 },
 };
 
-export default function MenuSection() {
+export default function MenuSection({ categories: propCategories }: { categories?: MenuCategory[] }) {
+  const { lang } = useLang();
+  const categories = (propCategories && propCategories.length > 0) ? propCategories : FALLBACK_CATEGORIES;
   const [activeId, setActiveId] = useState<string>(categories[0]?.id ?? "");
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const scrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -396,7 +271,9 @@ export default function MenuSection() {
                         : "bg-transparent text-drd-text/70 hover:bg-drd-primary/5"
                     }`}
                   >
-                    <span>{cat.label}</span>
+                    <span dir={lang === "ar" ? "rtl" : "ltr"} className={lang === "ar" ? "text-right" : ""}>
+                      {tField(lang, cat.nameEn, cat.nameAr)}
+                    </span>
                     {isActive && (
                       <span className="h-2 w-2 rounded-full bg-white" />
                     )}
@@ -432,13 +309,13 @@ export default function MenuSection() {
                 viewport={{ once: true, amount: 0.4 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
               >
-                <div>
+                <div dir={lang === "ar" ? "rtl" : "ltr"} className={lang === "ar" ? "text-right" : ""}>
                   <h3 className="text-xl md:text-2xl font-semibold font-heading text-drd-text mb-1">
-                    {cat.label}
+                    {tField(lang, cat.nameEn, cat.nameAr)}
                   </h3>
-                  {cat.description && (
+                  {tField(lang, cat.descriptionEn, cat.descriptionAr) && (
                     <p className="text-sm text-drd-text/70 leading-relaxed">
-                      {cat.description}
+                      {tField(lang, cat.descriptionEn, cat.descriptionAr)}
                     </p>
                   )}
                 </div>
@@ -469,82 +346,103 @@ export default function MenuSection() {
                   ‹
                 </button>
 
-                {/* SCROLLABLE CONTAINER */}
-                <div
-                  ref={(el) => {
-                    scrollRefs.current[cat.id] = el;
-                  }}
-                  onScroll={() => updateScrollState(cat.id)}
-                  className="flex gap-4 pb-2 overflow-x-auto scroll-smooth snap-x snap-mandatory -mx-1 px-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-                >
-                  {cat.items.map((item) => (
-                    <motion.article
-                      key={item.id}
-                      variants={itemVariants}
-                      initial="hidden"
-                      whileInView="visible"
-                      whileHover="hover"
-                      viewport={{ once: true, amount: 0.3 }}
-                      transition={{ duration: 0.25, ease: "easeOut" }}
-                      className="group min-w-[220px] max-w-[260px] shrink-0 snap-start rounded-3xl border border-slate-100 bg-white/80 shadow-sm shadow-black/5 transition hover:border-drd-primary/60 hover:bg-emerald-50/60 hover:shadow-lg hover:shadow-drd-primary/15"
-                    >
-                      {/* image */}
-                      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-3xl">
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          className="object-cover transition-transform duration-300 group-hover:scale-105"
-                          sizes="(max-width: 768px) 220px, 260px"
-                        />
-                      </div>
+                {/* SCROLLABLE CONTAINER (horizontal meals row) */}
+                <div className="w-full">
+                  <div
+                    ref={(el) => {
+                      scrollRefs.current[cat.id] = el;
+                    }}
+                    onScroll={() => updateScrollState(cat.id)}
+                    className="
+                      flex gap-4
+                      overflow-x-auto overflow-y-hidden
+                      scroll-smooth
+                      snap-x snap-mandatory
+                      touch-pan-x overscroll-x-contain
+                      pb-3
+                      px-4 -mx-4
+                      md:px-0 md:mx-0
+                      hide-scrollbar
+                    "
+                  >
+                    {cat.items.map((item) => (
+                      <motion.article
+                        key={item.id}
+                        variants={itemVariants}
+                        initial="hidden"
+                        whileInView="visible"
+                        whileHover="hover"
+                        viewport={{ once: true, amount: 0.3 }}
+                        transition={{ duration: 0.25, ease: "easeOut" }}
+                        className="
+                          group
+                          shrink-0
+                          snap-start
+                          w-[220px] sm:w-[240px] md:w-[260px]
+                          max-w-[85vw]
+                          rounded-3xl border border-slate-100 bg-white/80
+                          shadow-sm shadow-black/5
+                          transition
+                          hover:border-drd-primary/60 hover:bg-emerald-50/60 hover:shadow-lg hover:shadow-drd-primary/15
+                        "
+                      >
+                        {/* image */}
+                        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-3xl">
+                          <Image
+                            src={item.image}
+                            alt={tField(lang, item.nameEn, item.nameAr) || item.id || "Menu item"}
+                            fill
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            sizes="(max-width: 768px) 220px, 260px"
+                          />
+                        </div>
 
-                      {/* text */}
-                      <div className="p-3">
-                        <h4 className="text-sm font-semibold font-heading text-drd-text mb-1">
-                          {item.name}
-                        </h4>
-                        {item.calories && (
-                          <p className="mt-1 text-[11px] text-drd-text/60">
-                            {item.calories}
-                          </p>
-                        )}
-                        {item.description && (
-                          <p className="mt-2 text-xs text-drd-text/70 line-clamp-3 leading-relaxed">
-                            {item.description}
-                          </p>
-                        )}
+                        {/* text */}
+                        <div className={`p-3 ${lang === "ar" ? "text-right" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
+                          <h4 className="text-sm font-semibold font-heading text-drd-text mb-1">
+                            {tField(lang, item.nameEn, item.nameAr)}
+                          </h4>
+                          {(() => {
+                            const macros = formatMacros(lang, { proteinG: item.proteinG, carbsG: item.carbsG, calories: item.calories });
+                            return macros.length > 0 ? (
+                              <p className="mt-1 text-[11px] text-drd-text/60">
+                                {macros.join(" · ")}
+                              </p>
+                            ) : null;
+                          })()}
+                          {tField(lang, item.descriptionEn, item.descriptionAr) && (
+                            <p className="mt-2 text-xs text-drd-text/70 line-clamp-3 leading-relaxed">
+                              {tField(lang, item.descriptionEn, item.descriptionAr)}
+                            </p>
+                          )}
 
-                        {(item.tags?.length || item.price) && (
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
-                            {item.tags?.map((tag) => {
-                              const isHighProtein = tag === "High Protein";
-                              const isLowCal = tag === "Low Cal";
-                              return (
-                                <span
-                                  key={tag}
-                                  className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide font-semibold ${
-                                    isHighProtein
-                                      ? "bg-drd-primary/20 text-drd-primary"
-                                      : isLowCal
-                                      ? "bg-drd-accent/20 text-drd-accent"
-                                      : "bg-drd-primary/15 text-drd-primary-dark"
-                                  }`}
-                                >
-                                  {tag}
+                          {(item.tags?.length || item.price) && (
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              {item.tags?.map((tag, idx) => {
+                                const label = tField(lang, tag.labelEn, tag.labelAr);
+                                const isOrange = tag.tone === "orange";
+                                return (
+                                  <span
+                                    key={idx}
+                                    className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide font-semibold ${
+                                      isOrange ? "bg-drd-accent/20 text-drd-accent" : "bg-drd-primary/20 text-drd-primary"
+                                    }`}
+                                  >
+                                    {label}
+                                  </span>
+                                );
+                              })}
+                              {item.price && (
+                                <span className="ml-auto text-xs font-semibold text-drd-text">
+                                  {formatNumber(item.price, lang)}
                                 </span>
-                              );
-                            })}
-                            {item.price && (
-                              <span className="ml-auto text-xs font-semibold text-drd-text">
-                                {item.price}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </motion.article>
-                  ))}
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </motion.article>
+                    ))}
+                  </div>
                 </div>
 
                 {/* RIGHT ARROW */}
@@ -589,7 +487,7 @@ export default function MenuSection() {
                       : "bg-slate-100 text-drd-text/70"
                   }`}
                 >
-                  {cat.label}
+                  {tField(lang, cat.nameEn, cat.nameAr)}
                 </button>
               );
             })}

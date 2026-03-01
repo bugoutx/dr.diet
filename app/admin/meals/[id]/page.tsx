@@ -1,22 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { toast } from "sonner";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import LoadingButton from "@/components/admin/LoadingButton";
+
+type MealTagShape = { id?: string; labelEn: string; labelAr: string; tone: "green" | "orange" };
 
 type Meal = {
   id: string;
   categoryId: string;
-  name: string;
-  description: string | null;
-  calories: string | null;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  calories: number | null;
   price: string | null;
-  tags: string[];
+  mealTags: MealTagShape[];
   imageUrl: string;
   link: string | null;
 };
 
-type Category = { id: string; label: string };
+type Category = { id: string; nameEn: string };
 
 export default function AdminMealEditPage() {
   const params = useParams();
@@ -27,6 +37,9 @@ export default function AdminMealEditPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [newTag, setNewTag] = useState({ labelEn: "", labelAr: "", tone: "green" as "green" | "orange" });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     Promise.all([
@@ -34,7 +47,15 @@ export default function AdminMealEditPage() {
       fetch("/api/admin/categories").then((r) => r.json()),
     ])
       .then(([m, c]) => {
-        setMeal(m);
+        setMeal({
+          ...m,
+          mealTags: m.mealTags?.length ? m.mealTags.map((t: { id: string; labelEn: string; labelAr: string; tone: string }) => ({
+            id: t.id,
+            labelEn: t.labelEn,
+            labelAr: t.labelAr,
+            tone: t.tone === "orange" ? "orange" : "green",
+          })) : [],
+        });
         setCategories(c);
       })
       .catch(console.error)
@@ -45,38 +66,61 @@ export default function AdminMealEditPage() {
     const file = e.target.files?.[0];
     if (!file || !meal) return;
     setUploading(true);
+    setUploadError("");
     const fd = new FormData();
     fd.set("file", file);
     fd.set("folder", "meals");
-    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-    setUploading(false);
-    const data = await res.json();
-    if (data.url) setMeal({ ...meal, imageUrl: data.url });
+    try {
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd, credentials: "include" });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setMeal({ ...meal, imageUrl: data.url });
+        setUploadError("");
+        toast.success("Upload complete");
+      } else {
+        const msg = data?.error ?? "Upload failed";
+        setUploadError(msg);
+        toast.error(msg);
+      }
+    } catch {
+      setUploadError("Upload failed");
+      toast.error("Upload failed");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!meal) return;
     setSaving(true);
-    const res = await fetch(`/api/admin/meals/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        categoryId: meal.categoryId,
-        name: meal.name,
-        description: meal.description || null,
-        calories: meal.calories || null,
-        price: meal.price || null,
-        tags: meal.tags,
-        imageUrl: meal.imageUrl,
-        link: meal.link || null,
-      }),
-    });
-    setSaving(false);
-    if (res.ok) {
-      router.push("/admin/meals");
-    } else {
-      alert("Failed to update");
+    try {
+      const res = await fetch(`/api/admin/meals/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categoryId: meal.categoryId,
+          nameEn: meal.nameEn,
+          nameAr: meal.nameAr,
+          descriptionEn: meal.descriptionEn || null,
+          descriptionAr: meal.descriptionAr || null,
+          proteinG: meal.proteinG ?? null,
+          carbsG: meal.carbsG ?? null,
+          calories: meal.calories ?? null,
+          price: meal.price || null,
+          tags: meal.mealTags.map((t) => ({ labelEn: t.labelEn, labelAr: t.labelAr, tone: t.tone })),
+          imageUrl: meal.imageUrl,
+          link: meal.link || null,
+        }),
+      });
+      if (res.ok) {
+        toast.success("Updated");
+        router.push("/admin/meals");
+      } else throw new Error("Failed to update");
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -84,12 +128,11 @@ export default function AdminMealEditPage() {
 
   return (
     <div>
-      <Link href="/admin/meals" className="text-sm text-drd-primary hover:underline mb-4 inline-block">
-        ← Back to Meals
-      </Link>
-      <h1 className="text-2xl font-bold font-heading text-drd-text mb-6">
-        Edit Meal
-      </h1>
+      <AdminPageHeader
+        title="Edit Meal"
+        backLabel="Meals"
+        backHref="/admin/meals"
+      />
       <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
         <div>
           <label className="block text-sm font-medium text-drd-text mb-1">Category *</label>
@@ -100,37 +143,87 @@ export default function AdminMealEditPage() {
             required
           >
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.label}</option>
+              <option key={c.id} value={c.id}>{c.nameEn}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Name *</label>
+          <label className="block text-sm font-medium text-drd-text mb-1">Name (English) *</label>
           <input
             type="text"
-            value={meal.name}
-            onChange={(e) => setMeal({ ...meal, name: e.target.value })}
+            value={meal.nameEn}
+            onChange={(e) => setMeal({ ...meal, nameEn: e.target.value })}
             className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Description</label>
+          <label className="block text-sm font-medium text-drd-text mb-1">Name (Arabic) *</label>
+          <input
+            type="text"
+            value={meal.nameAr}
+            onChange={(e) => setMeal({ ...meal, nameAr: e.target.value })}
+            dir="rtl"
+            className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-right"
+            placeholder="الاسم بالعربية"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-drd-text mb-1">Description (English)</label>
           <textarea
-            value={meal.description ?? ""}
-            onChange={(e) => setMeal({ ...meal, description: e.target.value || null })}
+            value={meal.descriptionEn ?? ""}
+            onChange={(e) => setMeal({ ...meal, descriptionEn: e.target.value || null })}
             className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
             rows={2}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Calories / Macros</label>
-          <input
-            type="text"
-            value={meal.calories ?? ""}
-            onChange={(e) => setMeal({ ...meal, calories: e.target.value || null })}
-            className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+          <label className="block text-sm font-medium text-drd-text mb-1">Description (Arabic)</label>
+          <textarea
+            value={meal.descriptionAr ?? ""}
+            onChange={(e) => setMeal({ ...meal, descriptionAr: e.target.value || null })}
+            dir="rtl"
+            className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-right"
+            placeholder="الوصف بالعربية"
+            rows={2}
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-drd-text mb-1">Macros (optional)</label>
+          <p className="text-xs text-drd-muted mb-1">Optional — leave empty if unknown</p>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-drd-muted mb-0.5">Protein (g)</label>
+              <input
+                type="number"
+                min={0}
+                value={meal.proteinG ?? ""}
+                onChange={(e) => setMeal({ ...meal, proteinG: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-drd-muted mb-0.5">Carbs (g)</label>
+              <input
+                type="number"
+                min={0}
+                value={meal.carbsG ?? ""}
+                onChange={(e) => setMeal({ ...meal, carbsG: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-drd-muted mb-0.5">Calories (cal)</label>
+              <input
+                type="number"
+                min={0}
+                value={meal.calories ?? ""}
+                onChange={(e) => setMeal({ ...meal, calories: e.target.value === "" ? null : parseInt(e.target.value, 10) })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+              />
+            </div>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-drd-text mb-1">Price</label>
@@ -142,31 +235,94 @@ export default function AdminMealEditPage() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Tags (comma-separated)</label>
-          <input
-            type="text"
-            value={meal.tags.join(", ")}
-            onChange={(e) =>
-              setMeal({
-                ...meal,
-                tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-              })
-            }
-            className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
-          />
+          <label className="block text-sm font-medium text-drd-text mb-1">Tags</label>
+          <div className="space-y-2">
+            {meal.mealTags.map((tag, idx) => (
+              <div key={idx} className="flex items-center gap-2 flex-wrap">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tag.tone === "orange" ? "bg-drd-accent/20 text-drd-accent" : "bg-drd-primary/20 text-drd-primary"}`}>
+                  {tag.labelEn}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setMeal({ ...meal, mealTags: meal.mealTags.filter((_, i) => i !== idx) })}
+                  className="text-red-600 text-xs hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <div className="flex flex-wrap gap-2 items-end pt-2 border-t border-slate-100">
+              <input
+                type="text"
+                value={newTag.labelEn}
+                onChange={(e) => setNewTag({ ...newTag, labelEn: e.target.value })}
+                placeholder="Label (EN)"
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-drd-text w-32"
+              />
+              <input
+                type="text"
+                value={newTag.labelAr}
+                onChange={(e) => setNewTag({ ...newTag, labelAr: e.target.value })}
+                placeholder="التسمية (عربي)"
+                dir="rtl"
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-drd-text text-right w-32"
+              />
+              <select
+                value={newTag.tone}
+                onChange={(e) => setNewTag({ ...newTag, tone: e.target.value as "green" | "orange" })}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-drd-text"
+              >
+                <option value="green">Green</option>
+                <option value="orange">Orange</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newTag.labelEn.trim() || !newTag.labelAr.trim()) return;
+                  setMeal({ ...meal, mealTags: [...meal.mealTags, { ...newTag }] });
+                  setNewTag({ labelEn: "", labelAr: "", tone: "green" });
+                }}
+                className="rounded-lg bg-drd-primary/20 text-drd-primary px-3 py-1.5 text-sm font-medium hover:bg-drd-primary/30"
+              >
+                Add tag
+              </button>
+            </div>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-drd-text mb-1">Image *</label>
+          {meal.imageUrl && (
+            <div className="mb-3">
+              <p className="text-xs text-drd-muted mb-1">Current image</p>
+              <div className="relative w-full max-w-xs aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                <Image
+                  src={meal.imageUrl}
+                  alt={meal.nameEn}
+                  fill
+                  className="object-contain"
+                  unoptimized={meal.imageUrl.startsWith("http")}
+                />
+              </div>
+            </div>
+          )}
           <input
+            ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={handleFileChange}
-            disabled={uploading}
-            className="block w-full text-sm text-drd-text"
+            className="hidden"
           />
-          {meal.imageUrl && (
-            <p className="mt-1 text-xs text-drd-muted truncate">{meal.imageUrl}</p>
-          )}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="rounded-lg border-2 border-drd-primary bg-white text-drd-primary px-4 py-2 font-semibold hover:bg-drd-primary/5 disabled:opacity-50"
+          >
+            {uploading ? "Uploading..." : meal.imageUrl ? "Change Image" : "Upload Image"}
+          </button>
+          {uploading && <span className="ml-2 text-sm text-drd-muted">Uploading...</span>}
+          {uploadError && <p className="mt-1 text-sm text-red-600">{uploadError}</p>}
+          {meal.imageUrl && <p className="mt-1 text-xs text-drd-muted truncate max-w-md">{meal.imageUrl}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-drd-text mb-1">Link</label>
@@ -177,13 +333,14 @@ export default function AdminMealEditPage() {
             className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
           />
         </div>
-        <button
+        <LoadingButton
           type="submit"
-          disabled={saving}
+          loading={saving}
+          disabled={uploading}
           className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-70"
         >
-          {saving ? "Saving..." : "Save"}
-        </button>
+          Save
+        </LoadingButton>
       </form>
     </div>
   );

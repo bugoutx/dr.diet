@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { revalidateSite } from "@/lib/revalidate";
+import { requireAdmin } from "@/lib/adminGuard";
 
 const createSchema = z.object({
-  label: z.string().min(1),
-  description: z.string().optional().nullable(),
+  nameEn: z.string().min(1),
+  nameAr: z.string().min(1),
+  descriptionEn: z.string().optional().nullable(),
+  descriptionAr: z.string().optional().nullable(),
   order: z.number().optional(),
 });
 
 export async function GET() {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   const categories = await prisma.category.findMany({
     orderBy: { order: "asc" },
     include: {
@@ -19,6 +25,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   const body = await req.json();
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
@@ -26,10 +34,13 @@ export async function POST(req: NextRequest) {
   }
   const category = await prisma.category.create({
     data: {
-      label: parsed.data.label,
-      description: parsed.data.description ?? undefined,
+      nameEn: parsed.data.nameEn,
+      nameAr: parsed.data.nameAr,
+      descriptionEn: parsed.data.descriptionEn ?? undefined,
+      descriptionAr: parsed.data.descriptionAr ?? undefined,
       order: parsed.data.order ?? 0,
     },
   });
+  revalidateSite();
   return NextResponse.json(category);
 }

@@ -20,6 +20,11 @@
   --font-family-body: var(--font-body), system-ui, sans-serif;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 body {
   background: #ffffff;
   color: var(--drd-text);
@@ -32,4 +37,13 @@ body {
 
 .bg-gradient-radial {
   background: radial-gradient(circle, var(--tw-gradient-stops));
+}
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }

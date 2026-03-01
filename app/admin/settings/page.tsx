@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import LoadingButton from "@/components/admin/LoadingButton";
 
 type Settings = {
   phoneNumber: string | null;
   instagramUrl: string | null;
   instagramHandle: string | null;
   menuPdfUrl: string | null;
+  orderOnBeeorderUrl: string | null;
   googleMapsEmbedUrl: string | null;
   googleMapsLinkUrl: string | null;
   showHero: boolean;
@@ -23,7 +27,6 @@ export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -39,7 +42,6 @@ export default function AdminSettingsPage() {
     e.preventDefault();
     if (!settings) return;
     setSaving(true);
-    setMessage("");
     try {
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
@@ -47,9 +49,9 @@ export default function AdminSettingsPage() {
         body: JSON.stringify(settings),
       });
       if (!res.ok) throw new Error("Failed to save");
-      setMessage("Settings saved.");
-    } catch (err) {
-      setMessage("Error saving settings.");
+      toast.success("Saved");
+    } catch {
+      toast.error("Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -82,9 +84,12 @@ export default function AdminSettingsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold font-heading text-drd-text mb-6">
-        Main Settings
-      </h1>
+      <AdminPageHeader
+        title="Main Settings"
+        backLabel="Dashboard"
+        backHref="/admin"
+        showBack={false}
+      />
       <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl">
         <div>
           <h2 className="text-lg font-semibold text-drd-text mb-4">Contact & Social</h2>
@@ -123,15 +128,27 @@ export default function AdminSettingsPage() {
 
         <div>
           <h2 className="text-lg font-semibold text-drd-text mb-4">Menu PDF</h2>
-          <div>
-            <label className="block text-sm font-medium text-drd-text mb-1">Menu PDF URL</label>
-            <input
-              type="url"
-              value={settings.menuPdfUrl ?? ""}
-              onChange={(e) => setSettings({ ...settings, menuPdfUrl: e.target.value || null })}
-              className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
-              placeholder="https://... or upload via Upload section"
-            />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">Menu PDF URL</label>
+              <input
+                type="url"
+                value={settings.menuPdfUrl ?? ""}
+                onChange={(e) => setSettings({ ...settings, menuPdfUrl: e.target.value || null })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                placeholder="https://... or upload via Upload section"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">Order on Beeorder (URL for &quot;Order Now&quot; button)</label>
+              <input
+                type="url"
+                value={settings.orderOnBeeorderUrl ?? ""}
+                onChange={(e) => setSettings({ ...settings, orderOnBeeorderUrl: e.target.value || null })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                placeholder="https://beeorder.app/..."
+              />
+            </div>
           </div>
         </div>
 
@@ -176,18 +193,13 @@ export default function AdminSettingsPage() {
           </div>
         </div>
 
-        {message && (
-          <p className={message.includes("Error") ? "text-red-600" : "text-drd-primary"}>
-            {message}
-          </p>
-        )}
-        <button
+        <LoadingButton
           type="submit"
-          disabled={saving}
+          loading={saving}
           className="rounded-full bg-drd-primary px-6 py-2.5 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-70"
         >
-          {saving ? "Saving..." : "Save Settings"}
-        </button>
+          Save Settings
+        </LoadingButton>
       </form>
     </div>
   );

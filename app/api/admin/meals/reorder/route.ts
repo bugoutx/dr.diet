@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { revalidateSite } from "@/lib/revalidate";
+import { requireAdmin } from "@/lib/adminGuard";
 
 const schema = z.object({
   categoryId: z.string(),
@@ -8,6 +10,8 @@ const schema = z.object({
 });
 
 export async function PUT(req: NextRequest) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   const body = await req.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
@@ -21,5 +25,6 @@ export async function PUT(req: NextRequest) {
       })
     )
   );
+  revalidateSite();
   return NextResponse.json({ ok: true });
 }

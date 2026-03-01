@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { revalidateSite } from "@/lib/revalidate";
+import { requireAdmin } from "@/lib/adminGuard";
 
 const settingsSchema = z.object({
   phoneNumber: z.string().optional().nullable(),
   instagramUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
   instagramHandle: z.string().optional().nullable(),
-  menuPdfUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
+  menuPdfUrl: z.string().optional().nullable(), // URL or relative path e.g. /menu.pdf
+  orderOnBeeorderUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
   googleMapsEmbedUrl: z.string().optional().nullable(),
   googleMapsLinkUrl: z.string().optional().nullable(),
   showHero: z.boolean().optional(),
@@ -21,6 +24,8 @@ const settingsSchema = z.object({
 });
 
 export async function GET() {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   const settings = await prisma.siteSettings.findUnique({
     where: { id: "singleton" },
   });
@@ -31,6 +36,8 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   const body = await req.json();
   const parsed = settingsSchema.safeParse(body);
   if (!parsed.success) {
@@ -42,6 +49,7 @@ export async function PUT(req: NextRequest) {
   if (data.instagramUrl !== undefined) update.instagramUrl = data.instagramUrl;
   if (data.instagramHandle !== undefined) update.instagramHandle = data.instagramHandle;
   if (data.menuPdfUrl !== undefined) update.menuPdfUrl = data.menuPdfUrl;
+  if (data.orderOnBeeorderUrl !== undefined) update.orderOnBeeorderUrl = data.orderOnBeeorderUrl;
   if (data.googleMapsEmbedUrl !== undefined) update.googleMapsEmbedUrl = data.googleMapsEmbedUrl;
   if (data.googleMapsLinkUrl !== undefined) update.googleMapsLinkUrl = data.googleMapsLinkUrl;
   if (data.showHero !== undefined) update.showHero = data.showHero;
@@ -59,5 +67,6 @@ export async function PUT(req: NextRequest) {
     create: { id: "singleton", ...update } as never,
     update,
   });
+  revalidateSite();
   return NextResponse.json(settings);
 }
