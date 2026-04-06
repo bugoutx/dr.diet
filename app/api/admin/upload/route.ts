@@ -15,6 +15,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    if (folder === "menu") {
+      if (file.type !== "application/pdf") {
+        return NextResponse.json({ error: "Only PDF files are allowed for the menu" }, { status: 400 });
+      }
+    }
+
     const blob = await put(`${folder}/${Date.now()}-${file.name}`, file, {
       access: "public",
       addRandomSuffix: true,

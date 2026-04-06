@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
 export default function AdminLoginPage() {
+  const { lang } = useLang();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -24,7 +27,7 @@ export default function AdminLoginPage() {
     });
     setLoading(false);
     if (res?.error) {
-      setError("Invalid email or password.");
+      setError(tField(lang, "Invalid email or password.", "البريد الإلكتروني أو كلمة المرور غير صحيحة."));
       return;
     }
     router.push(callbackUrl);
@@ -37,11 +40,11 @@ export default function AdminLoginPage() {
         <h1 className="text-2xl font-bold font-heading text-drd-text mb-2">
           Dr.Diet Admin
         </h1>
-        <p className="text-drd-muted text-sm mb-6">Sign in to manage your site</p>
+        <p className="text-drd-muted text-sm mb-6">{tField(lang, "Sign in to manage your site", "سجّل الدخول لإدارة موقعك")}</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-drd-text mb-1">
-              Email
+              {tField(lang, "Email", "البريد الإلكتروني")}
             </label>
             <input
               id="email"
@@ -55,7 +58,7 @@ export default function AdminLoginPage() {
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-drd-text mb-1">
-              Password
+              {tField(lang, "Password", "كلمة المرور")}
             </label>
             <input
               id="password"
@@ -74,7 +77,7 @@ export default function AdminLoginPage() {
             disabled={loading}
             className="w-full rounded-full bg-drd-primary px-6 py-3 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-70 transition"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? tField(lang, "Signing in...", "جاري تسجيل الدخول...") : tField(lang, "Sign in", "تسجيل الدخول")}
           </button>
         </form>
       </div>

@@ -52,6 +52,19 @@ npx prisma migrate dev --name init
 npx prisma db seed
 ```
 
+#### “Can’t reach database server” (Supabase / Prisma)
+
+This is a **network or connection string** issue, not an app bug.
+
+1. **Unpause the project** in [Supabase Dashboard](https://supabase.com/dashboard) → your project (free tier pauses after inactivity).
+2. **Use the URI from the dashboard** — Settings → Database → **Connection string** (do not invent `pooler` hostnames or ports).
+3. **Local development:** prefer the **Direct connection** string (`db.<ref>.supabase.co`, port `5432`). The pooler on `:5432` or `:6543` can fail from some networks or when the URI mode does not match (session vs transaction pooler).
+4. **Transaction pooler** (usually port `6543`, `pgbouncer=true`) is intended for serverless; if you use it for Prisma, follow [Prisma + Supabase](https://www.prisma.io/docs/orm/overview/databases/supabase) and consider a separate `directUrl` for migrations.
+5. **Firewall / VPN:** ensure outbound access to Postgres (often `5432` or `6543`) is allowed.
+6. **Quick check:** run `npx prisma db pull` — if it cannot connect, the problem is `DATABASE_URL` or network, not the Next.js app.
+
+See `.env.example` for example `DATABASE_URL` shapes.
+
 Default admin: `admin@drdiet.sy` / `admin123` — **change password in production**.
 
 ### 3. Static Fallback Assets

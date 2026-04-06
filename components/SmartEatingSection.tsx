@@ -1,5 +1,9 @@
 "use client";
 
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
+import DecorativeVeggies from "@/components/DecorativeVeggies";
+
 const features = [
   {
     icon: (
@@ -17,7 +21,8 @@ const features = [
         />
       </svg>
     ),
-    text: "Calorie-counted meals with transparent macros",
+    textEn: "Calorie-counted meals with transparent macros",
+    textAr: "وجبات محسوبة السعرات مع مغذيات واضحة",
   },
   {
     icon: (
@@ -35,7 +40,8 @@ const features = [
         />
       </svg>
     ),
-    text: "High-protein options for muscle maintenance and satiety",
+    textEn: "High-protein options for muscle maintenance and satiety",
+    textAr: "خيارات عالية البروتين للحفاظ على العضلات والشبع",
   },
   {
     icon: (
@@ -53,7 +59,8 @@ const features = [
         />
       </svg>
     ),
-    text: "Balanced carbs, fats, and fiber",
+    textEn: "Balanced carbs, fats, and fiber",
+    textAr: "كربوهيدرات ودهون وألياف متوازنة",
   },
   {
     icon: (
@@ -71,52 +78,61 @@ const features = [
         />
       </svg>
     ),
-    text: "Suitable for weight loss, maintenance, and performance",
+    textEn: "Suitable for weight loss, maintenance, and performance",
+    textAr: "مناسب لخسارة الوزن والاستقرار والأداء",
   },
 ];
 
 export default function SmartEatingSection() {
+  const { lang } = useLang();
+  const isRtl = lang === "ar";
+
   return (
-    <section id="about" className="py-16 md:py-24 bg-white">
-      <div className="max-w-6xl mx-auto px-4 lg:px-6">
+    <section
+      id="science"
+      className="relative py-16 md:py-24 bg-white overflow-hidden"
+      dir={isRtl ? "rtl" : "ltr"}
+    >
+      <DecorativeVeggies section="science" />
+      <div className="relative z-10 max-w-6xl mx-auto px-4 lg:px-6">
         {/* Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold font-heading text-drd-text mb-4">
-            The Science Behind Eating Right
+            {tField(lang, "The Science Behind Eating Right", "علم الأكل الصحيح")}
           </h2>
           <p className="text-2xl md:text-3xl text-drd-accent italic tracking-wide font-medium">
-            Don't eat less, eat Right.
+            {tField(lang, "Don't eat less, eat Right.", "لا تأكل أقل، كل صح.")}
           </p>
         </div>
 
         {/* Two-Column Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center mb-8">
           {/* Left Column - Feature Bullets */}
-          <div className="space-y-6">
+          <div className={`space-y-6 ${isRtl ? "md:order-2" : ""}`}>
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="flex items-start gap-4 p-4 rounded-xl border border-drd-accent/20 hover:border-drd-accent/40 hover:bg-drd-accent/5 transition-all duration-300"
+                className={`flex items-start gap-4 p-4 rounded-xl border border-drd-accent/20 hover:border-drd-accent/40 hover:bg-drd-accent/5 transition-all duration-300 ${isRtl ? "flex-row-reverse" : ""}`}
               >
                 <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-drd-primary/10 text-drd-primary flex items-center justify-center">
                   {feature.icon}
                 </div>
-                <p className="text-lg text-drd-text leading-relaxed pt-2">
-                  {feature.text}
+                <p className={`text-lg text-drd-text leading-relaxed pt-2 ${isRtl ? "text-right" : "text-left"}`}>
+                  {tField(lang, feature.textEn, feature.textAr)}
                 </p>
               </div>
             ))}
           </div>
 
           {/* Right Column - Infographic Card */}
-          <div className="relative">
+          <div className={`relative ${isRtl ? "md:order-1" : ""}`}>
             {/* Glow effect */}
             <div className="absolute inset-0 bg-gradient-to-br from-drd-accent/20 to-drd-primary/20 rounded-3xl blur-2xl -z-10" />
-            
+
             {/* Card with neon border */}
             <div className="relative bg-white rounded-3xl p-8 border-2 border-drd-accent/30 shadow-xl">
               <h3 className="text-xl font-bold font-heading text-drd-text mb-6 text-center">
-                Ideal Plate Composition
+                {tField(lang, "Ideal Plate Composition", "تكوين الطبق المثالي")}
               </h3>
 
               {/* Plate Visualization */}
@@ -171,23 +187,23 @@ export default function SmartEatingSection() {
               </div>
 
               {/* Legend */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 rounded-full bg-drd-primary/30 border-2 border-drd-primary" />
+              <div className={`space-y-3 ${isRtl ? "text-right" : "text-left"}`}>
+                <div className={`flex items-center gap-3 ${isRtl ? "flex-row-reverse" : ""}`}>
+                  <div className="w-4 h-4 rounded-full bg-drd-primary/30 border-2 border-drd-primary shrink-0" />
                   <span className="text-sm text-drd-text">
-                    <span className="font-semibold">40%</span> Veggies
+                    <span className="font-semibold">40%</span> {tField(lang, "Veggies", "خضروات")}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 rounded-full bg-drd-accent/40 border-2 border-drd-accent" />
+                <div className={`flex items-center gap-3 ${isRtl ? "flex-row-reverse" : ""}`}>
+                  <div className="w-4 h-4 rounded-full bg-drd-accent/40 border-2 border-drd-accent shrink-0" />
                   <span className="text-sm text-drd-text">
-                    <span className="font-semibold">35%</span> Protein
+                    <span className="font-semibold">35%</span> {tField(lang, "Protein", "بروتين")}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 rounded-full bg-drd-primary-dark/30 border-2 border-drd-primary-dark" />
+                <div className={`flex items-center gap-3 ${isRtl ? "flex-row-reverse" : ""}`}>
+                  <div className="w-4 h-4 rounded-full bg-drd-primary-dark/30 border-2 border-drd-primary-dark shrink-0" />
                   <span className="text-sm text-drd-text">
-                    <span className="font-semibold">25%</span> Smart Carbs
+                    <span className="font-semibold">25%</span> {tField(lang, "Smart Carbs", "كربوهيدرات ذكية")}
                   </span>
                 </div>
               </div>
@@ -197,8 +213,11 @@ export default function SmartEatingSection() {
 
         {/* Micro-copy */}
         <p className="text-center text-sm text-drd-muted max-w-3xl mx-auto pt-4 border-t border-drd-bg">
-          Macros based on items like California Salad, Energy Dishes, and Smart
-          Snacks from our menu
+          {tField(
+            lang,
+            "Macros based on items like California Salad, Energy Dishes, and Smart Snacks from our menu",
+            "المغذيات الكبرى مبنية على أطباق مثل سلطة كاليفورنيا وأطباق الطاقة والوجبات الخفيفة الذكية من قائمتنا"
+          )}
         </p>
       </div>
     </section>

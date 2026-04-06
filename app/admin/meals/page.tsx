@@ -6,6 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
 type Meal = {
   id: string;
@@ -25,6 +27,7 @@ type Meal = {
 type Category = { id: string; nameEn: string };
 
 export default function AdminMealsPage() {
+  const { lang } = useLang();
   const searchParams = useSearchParams();
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get("categoryId") ?? "");
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -49,24 +52,24 @@ export default function AdminMealsPage() {
     : meals;
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this meal?")) return;
+    if (!confirm(tField(lang, "Delete this meal?", "حذف هذه الوجبة؟"))) return;
     try {
       const res = await fetch(`/api/admin/meals/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       setMeals(meals.filter((m) => m.id !== id));
-      toast.success("Deleted");
+      toast.success(tField(lang, "Deleted", "تم الحذف"));
     } catch {
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     }
   }
 
-  if (loading) return <div className="text-drd-muted">Loading...</div>;
+  if (loading) return <div className="text-drd-muted">{tField(lang, "Loading...", "جاري التحميل...")}</div>;
 
   return (
     <div>
       <AdminPageHeader
-        title="Meals"
-        backLabel="Dashboard"
+        title={tField(lang, "Meals", "الوجبات")}
+        backLabel={tField(lang, "Dashboard", "لوحة التحكم")}
         backHref="/admin"
         showBack={false}
         actions={
@@ -74,7 +77,7 @@ export default function AdminMealsPage() {
             href={`/admin/meals/new${categoryFilter ? `?categoryId=${categoryFilter}` : ""}`}
             className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark"
           >
-            Add Meal
+            {tField(lang, "Add Meal", "إضافة وجبة")}
           </Link>
         }
       />
@@ -85,7 +88,7 @@ export default function AdminMealsPage() {
           onChange={(e) => setCategoryFilter(e.target.value)}
           className="rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
         >
-          <option value="">All categories</option>
+          <option value="">{tField(lang, "All categories", "جميع الفئات")}</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nameEn}
@@ -124,14 +127,14 @@ export default function AdminMealsPage() {
                 href={`/admin/meals/${meal.id}`}
                 className="rounded-lg border border-drd-primary px-4 py-2 text-sm font-medium text-drd-primary hover:bg-drd-primary/10"
               >
-                Edit
+                {tField(lang, "Edit", "تعديل")}
               </Link>
               <button
                 type="button"
                 onClick={() => handleDelete(meal.id)}
                 className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
               >
-                Delete
+                {tField(lang, "Delete", "حذف")}
               </button>
             </div>
           </div>
@@ -139,7 +142,7 @@ export default function AdminMealsPage() {
       </div>
 
       {filtered.length === 0 && (
-        <p className="text-drd-muted">No meals found.</p>
+        <p className="text-drd-muted">{tField(lang, "No meals found.", "لم يتم العثور على وجبات.")}</p>
       )}
     </div>
   );

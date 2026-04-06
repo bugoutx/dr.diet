@@ -4,6 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import InlineLoader from "@/components/admin/InlineLoader";
+import LoadingButton from "@/components/admin/LoadingButton";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
 const MAX_VIDEOS = 5;
 
@@ -17,7 +20,15 @@ type Video = {
   sortOrder: number;
 };
 
+type SectionContent = {
+  videosTitleEn: string | null;
+  videosTitleAr: string | null;
+  videosSubtitleEn: string | null;
+  videosSubtitleAr: string | null;
+};
+
 export default function AdminVideosPage() {
+  const { lang } = useLang();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -26,6 +37,13 @@ export default function AdminVideosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitleEn, setEditTitleEn] = useState("");
   const [editTitleAr, setEditTitleAr] = useState("");
+  const [sectionContent, setSectionContent] = useState<SectionContent>({
+    videosTitleEn: null,
+    videosTitleAr: null,
+    videosSubtitleEn: null,
+    videosSubtitleAr: null,
+  });
+  const [sectionSaving, setSectionSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function fetchVideos() {
@@ -40,17 +58,54 @@ export default function AdminVideosPage() {
     fetchVideos();
   }, []);
 
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        setSectionContent({
+          videosTitleEn: data.videosTitleEn ?? null,
+          videosTitleAr: data.videosTitleAr ?? null,
+          videosSubtitleEn: data.videosSubtitleEn ?? null,
+          videosSubtitleAr: data.videosSubtitleAr ?? null,
+        });
+      })
+      .catch(() => {});
+  }, []);
+
+  async function handleSaveSectionContent(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSectionSaving(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videosTitleEn: sectionContent.videosTitleEn?.trim() || null,
+          videosTitleAr: sectionContent.videosTitleAr?.trim() || null,
+          videosSubtitleEn: sectionContent.videosSubtitleEn?.trim() || null,
+          videosSubtitleAr: sectionContent.videosSubtitleAr?.trim() || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      toast.success(tField(lang, "Saved", "تم الحفظ"));
+    } catch {
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
+    } finally {
+      setSectionSaving(false);
+    }
+  }
+
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const allowed = ["video/mp4", "video/quicktime"];
     if (!allowed.includes(file.type) && !file.name.toLowerCase().endsWith(".mp4") && !file.name.toLowerCase().endsWith(".mov")) {
-      toast.error("Please select an MP4 or MOV video file.");
+      toast.error(tField(lang, "Please select an MP4 or MOV video file.", "يرجى اختيار ملف فيديو MP4 أو MOV."));
       e.target.value = "";
       return;
     }
     if (videos.length >= MAX_VIDEOS) {
-      toast.error("Maximum of 5 videos allowed.");
+      toast.error(tField(lang, "Maximum of 5 videos allowed.", "الحد الأقصى 5 فيديوهات."));
       e.target.value = "";
       return;
     }
@@ -66,12 +121,12 @@ export default function AdminVideosPage() {
       });
       const uploadData = await uploadRes.json().catch(() => ({}));
       if (!uploadRes.ok) {
-        toast.error(uploadData?.error ?? "Upload failed");
+        toast.error(uploadData?.error ?? tField(lang, "Upload failed", "فشل الرفع"));
         return;
       }
       const videoUrl = uploadData?.url ?? uploadData?.downloadUrl;
       if (!videoUrl) {
-        toast.error("Upload succeeded but no URL returned.");
+        toast.error(tField(lang, "Upload succeeded but no URL returned.", "تم الرفع لكن لم يُرجع رابط."));
         return;
       }
       const createRes = await fetch("/api/admin/videos", {
@@ -82,13 +137,13 @@ export default function AdminVideosPage() {
       });
       const createData = await createRes.json().catch(() => ({}));
       if (!createRes.ok) {
-        toast.error(createData?.error ?? "Failed to add video");
+        toast.error(createData?.error ?? tField(lang, "Failed to add video", "فشل إضافة الفيديو"));
         return;
       }
       setVideos((prev) => [...prev, createData].sort((a, b) => a.sortOrder - b.sortOrder));
-      toast.success("Video added");
+      toast.success(tField(lang, "Video added", "تمت إضافة الفيديو"));
     } catch {
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -96,15 +151,15 @@ export default function AdminVideosPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this video?")) return;
+    if (!confirm(tField(lang, "Delete this video?", "حذف هذا الفيديو؟"))) return;
     try {
       const res = await fetch(`/api/admin/videos/${id}`, { method: "DELETE", credentials: "include" });
       if (!res.ok) throw new Error("Failed to delete");
       setVideos(videos.filter((v) => v.id !== id));
       if (editingId === id) setEditingId(null);
-      toast.success("Deleted");
+      toast.success(tField(lang, "Deleted", "تم الحذف"));
     } catch {
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     }
   }
 
@@ -123,10 +178,10 @@ export default function AdminVideosPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error ?? "Failed to update");
       }
-      toast.success("Updated");
+      toast.success(tField(lang, "Updated", "تم التحديث"));
     } catch (e) {
       setVideos(videos.map((v) => (v.id === video.id ? { ...v, isActive: !next } : v)));
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+      toast.error(e instanceof Error ? e.message : tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setTogglingId(null);
     }
@@ -152,9 +207,9 @@ export default function AdminVideosPage() {
       if (!res.ok) throw new Error("Failed to update");
       setVideos(videos.map((v) => (v.id === editingId ? { ...v, titleEn: editTitleEn.trim() || null, titleAr: editTitleAr.trim() || null } : v)));
       setEditingId(null);
-      toast.success("Updated");
+      toast.success(tField(lang, "Updated", "تم التحديث"));
     } catch {
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     }
   }
 
@@ -173,32 +228,92 @@ export default function AdminVideosPage() {
       body: JSON.stringify({ videoIds }),
     })
       .then((res) => {
-        if (res.ok) toast.success("Order updated");
+        if (res.ok) toast.success(tField(lang, "Order updated", "تم تحديث الترتيب"));
         else return res.json().then((d) => { throw new Error(d?.error ?? "Failed to reorder"); });
       })
       .catch((e) => {
         setVideos(videos);
-        toast.error(e instanceof Error ? e.message : "Something went wrong");
+        toast.error(e instanceof Error ? e.message : tField(lang, "Something went wrong", "حدث خطأ ما"));
       })
       .finally(() => setReordering(false));
   }
 
-  if (loading) return <div className="text-drd-muted">Loading...</div>;
+  if (loading) return <div className="text-drd-muted">{tField(lang, "Loading...", "جاري التحميل...")}</div>;
 
   return (
     <div>
       <AdminPageHeader
-        title="Videos"
-        backLabel="Dashboard"
+        title={tField(lang, "Videos", "الفيديوهات")}
+        backLabel={tField(lang, "Dashboard", "لوحة التحكم")}
         backHref="/admin"
         showBack={false}
       />
-      <p className="text-drd-muted mb-6">Max 5 videos. They appear in the Reels section on the landing page (autoplay muted, click to open modal).</p>
+      <p className="text-drd-muted mb-6">{tField(lang, "Max 5 videos. They appear in the Reels section on the landing page (autoplay muted, click to open modal).", "حد أقصى 5 فيديوهات. تظهر في قسم الريلز على الصفحة الرئيسية.")}</p>
+
+      {/* Section title & subtitle (saved to SiteSettings) */}
+      <form onSubmit={handleSaveSectionContent} className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-drd-text mb-4">{tField(lang, "Section title & subtitle", "عنوان القسم والعنوان الفرعي")}</h2>
+        <p className="text-sm text-drd-muted mb-4">Shown at the top of the Videos / Reels section on the landing page. Leave empty to use defaults.</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium text-drd-text mb-1">{tField(lang, "Title (English)", "العنوان (إنجليزي)")}</label>
+            <input
+              type="text"
+              value={sectionContent.videosTitleEn ?? ""}
+              onChange={(e) => setSectionContent((s) => ({ ...s, videosTitleEn: e.target.value || null }))}
+              className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+              placeholder="See the Real Plates"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-drd-text mb-1">{tField(lang, "Title (Arabic)", "العنوان (عربي)")}</label>
+            <input
+              type="text"
+              value={sectionContent.videosTitleAr ?? ""}
+              onChange={(e) => setSectionContent((s) => ({ ...s, videosTitleAr: e.target.value || null }))}
+              className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+              placeholder="شاهد الأطباق الحقيقية"
+              dir="rtl"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-drd-text mb-1">{tField(lang, "Subtitle (English)", "العنوان الفرعي (إنجليزي)")}</label>
+            <input
+              type="text"
+              value={sectionContent.videosSubtitleEn ?? ""}
+              onChange={(e) => setSectionContent((s) => ({ ...s, videosSubtitleEn: e.target.value || null }))}
+              className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+              placeholder="Real, freshly prepared meals — straight from our kitchen..."
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-drd-text mb-1">{tField(lang, "Subtitle (Arabic)", "العنوان الفرعي (عربي)")}</label>
+            <input
+              type="text"
+              value={sectionContent.videosSubtitleAr ?? ""}
+              onChange={(e) => setSectionContent((s) => ({ ...s, videosSubtitleAr: e.target.value || null }))}
+              className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+              placeholder="أطباق حقيقية طازجة — من مطبخنا مباشرة..."
+              dir="rtl"
+            />
+          </div>
+        </div>
+        <div className="mt-4">
+          <LoadingButton
+            type="submit"
+            loading={sectionSaving}
+            loadingLabel={tField(lang, "Saving…", "جاري الحفظ…")}
+            className="rounded-full bg-drd-primary px-5 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-70"
+          >
+            {tField(lang, "Save section title & subtitle", "حفظ عنوان القسم والعنوان الفرعي")}
+          </LoadingButton>
+        </div>
+      </form>
 
       {/* Upload */}
       <div className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-drd-text mb-2">Upload Video</h2>
-        <p className="text-sm text-drd-muted mb-4">You can upload up to 5 videos. MP4 or MOV.</p>
+        <h2 className="text-lg font-semibold text-drd-text mb-2">{tField(lang, "Upload Video", "رفع فيديو")}</h2>
+        <p className="text-sm text-drd-muted mb-4">{tField(lang, "You can upload up to 5 videos. MP4 or MOV.", "يمكنك رفع حتى 5 فيديوهات. MP4 أو MOV.")}</p>
         <input
           ref={fileInputRef}
           type="file"
@@ -212,15 +327,15 @@ export default function AdminVideosPage() {
           onClick={() => fileInputRef.current?.click()}
           className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {uploading ? "Uploading…" : videos.length >= MAX_VIDEOS ? "Maximum 5 videos" : "Upload Video"}
+          {uploading ? tField(lang, "Uploading…", "جاري الرفع…") : videos.length >= MAX_VIDEOS ? tField(lang, "Maximum 5 videos", "حد أقصى 5 فيديوهات") : tField(lang, "Upload Video", "رفع فيديو")}
         </button>
-        {uploading && <span className="ml-3 align-middle"><InlineLoader label="Uploading…" /></span>}
+        {uploading && <span className="ml-3 align-middle"><InlineLoader label={tField(lang, "Uploading…", "جاري الرفع…")} /></span>}
       </div>
 
       {/* List */}
       <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm text-drd-muted">Use ▲▼ to reorder</span>
-        {reordering && <InlineLoader label="Saving order…" />}
+        <span className="text-sm text-drd-muted">{tField(lang, "Use ▲▼ to reorder", "استخدم ▲▼ لإعادة الترتيب")}</span>
+        {reordering && <InlineLoader label={tField(lang, "Saving order…", "جاري حفظ الترتيب…")} />}
       </div>
       <div className="space-y-4">
         {videos.map((video, index) => (
@@ -234,7 +349,7 @@ export default function AdminVideosPage() {
                 onClick={() => moveVideo(index, "up")}
                 disabled={reordering || index === 0}
                 className="rounded p-1 text-drd-text/60 hover:bg-slate-100 disabled:opacity-30"
-                aria-label="Move up"
+                aria-label={tField(lang, "Move up", "تحريك لأعلى")}
               >
                 ▲
               </button>
@@ -243,7 +358,7 @@ export default function AdminVideosPage() {
                 onClick={() => moveVideo(index, "down")}
                 disabled={reordering || index === videos.length - 1}
                 className="rounded p-1 text-drd-text/60 hover:bg-slate-100 disabled:opacity-30"
-                aria-label="Move down"
+                aria-label={tField(lang, "Move down", "تحريك لأسفل")}
               >
                 ▼
               </button>
@@ -282,14 +397,14 @@ export default function AdminVideosPage() {
                       onClick={saveEdit}
                       className="text-sm text-drd-primary hover:underline"
                     >
-                      Save
+                      {tField(lang, "Save", "حفظ")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditingId(null)}
                       className="text-sm text-drd-muted hover:underline"
                     >
-                      Cancel
+                      {tField(lang, "Cancel", "إلغاء")}
                     </button>
                   </div>
                 </div>
@@ -302,13 +417,13 @@ export default function AdminVideosPage() {
                     onClick={() => startEdit(video)}
                     className="mt-1 text-sm text-drd-primary hover:underline"
                   >
-                    Edit titles
+                    {tField(lang, "Edit titles", "تعديل العناوين")}
                   </button>
                 </>
               )}
             </div>
             <label className="flex items-center gap-2">
-              <span className="text-sm text-drd-muted">Active</span>
+              <span className="text-sm text-drd-muted">{tField(lang, "Active", "مفعل")}</span>
               <input
                 type="checkbox"
                 checked={video.isActive}
@@ -323,14 +438,14 @@ export default function AdminVideosPage() {
               onClick={() => handleDelete(video.id)}
               className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
             >
-              Delete
+              {tField(lang, "Delete", "حذف")}
             </button>
           </div>
         ))}
       </div>
 
       {videos.length === 0 && (
-        <p className="text-drd-muted">No videos yet. Upload one above.</p>
+        <p className="text-drd-muted">{tField(lang, "No videos yet. Upload one above.", "لا توجد فيديوهات بعد. ارفع واحداً أعلاه.")}</p>
       )}
     </div>
   );

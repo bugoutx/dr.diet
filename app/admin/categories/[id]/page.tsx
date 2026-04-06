@@ -6,6 +6,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import LoadingButton from "@/components/admin/LoadingButton";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
 type Category = {
   id: string;
@@ -17,6 +19,7 @@ type Category = {
 };
 
 export default function AdminCategoryEditPage() {
+  const { lang } = useLang();
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -48,28 +51,28 @@ export default function AdminCategoryEditPage() {
         }),
       });
       if (res.ok) {
-        toast.success("Updated");
+        toast.success(tField(lang, "Updated", "تم التحديث"));
         router.push("/admin/categories");
       } else throw new Error("Failed to update");
     } catch {
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading || !cat) return <div className="text-drd-muted">Loading...</div>;
+  if (loading || !cat) return <div className="text-drd-muted">{tField(lang, "Loading...", "جاري التحميل...")}</div>;
 
   return (
     <div>
       <AdminPageHeader
-        title="Edit Category"
-        backLabel="Categories"
+        title={tField(lang, "Edit Category", "تعديل الفئة")}
+        backLabel={tField(lang, "Categories", "الفئات")}
         backHref="/admin/categories"
       />
       <form onSubmit={handleSubmit} className="max-w-md space-y-4">
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Name (English) *</label>
+          <label className="block text-sm font-medium text-drd-text mb-1">{tField(lang, "Name (English) *", "الاسم (إنجليزي) *")}</label>
           <input
             type="text"
             value={cat.nameEn}
@@ -79,7 +82,7 @@ export default function AdminCategoryEditPage() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Name (Arabic) *</label>
+          <label className="block text-sm font-medium text-drd-text mb-1">{tField(lang, "Name (Arabic) *", "الاسم (عربي) *")}</label>
           <input
             type="text"
             value={cat.nameAr}
@@ -91,7 +94,7 @@ export default function AdminCategoryEditPage() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Description (English)</label>
+          <label className="block text-sm font-medium text-drd-text mb-1">{tField(lang, "Description (English)", "الوصف (إنجليزي)")}</label>
           <textarea
             value={cat.descriptionEn ?? ""}
             onChange={(e) => setCat({ ...cat, descriptionEn: e.target.value || null })}
@@ -100,7 +103,7 @@ export default function AdminCategoryEditPage() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-drd-text mb-1">Description (Arabic)</label>
+          <label className="block text-sm font-medium text-drd-text mb-1">{tField(lang, "Description (Arabic)", "الوصف (عربي)")}</label>
           <textarea
             value={cat.descriptionAr ?? ""}
             onChange={(e) => setCat({ ...cat, descriptionAr: e.target.value || null })}
@@ -113,9 +116,10 @@ export default function AdminCategoryEditPage() {
         <LoadingButton
           type="submit"
           loading={saving}
+          loadingLabel={tField(lang, "Saving…", "جاري الحفظ…")}
           className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-70"
         >
-          Save
+          {tField(lang, "Save", "حفظ")}
         </LoadingButton>
       </form>
       <div className="mt-8">

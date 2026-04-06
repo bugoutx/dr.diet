@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/lib/LangContext";
 import { tField } from "@/lib/tField";
+import DecorativeVeggies from "@/components/DecorativeVeggies";
 
 export type Testimonial = {
   name: string;
@@ -157,20 +158,20 @@ function TestimonialModal({ testimonial, onClose }: TestimonialModalProps) {
 
           <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2.5 py-1 bg-drd-primary/10 text-drd-primary text-xs font-semibold rounded-full">
-                    Verified Customer
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-3 w-full mb-2 flex-wrap">
+                  <span className="inline-flex items-center rounded-full px-2.5 py-1 bg-drd-primary/10 text-drd-primary text-xs font-semibold shrink-0" dir={lang === "ar" ? "rtl" : "ltr"}>
+                    {tField(lang, "Verified Customer", "عميل موثّق")}
                   </span>
+                  <div className="inline-flex items-center gap-1 shrink-0">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <StarIcon key={i} filled={i < testimonial.rating} />
+                    ))}
+                  </div>
                 </div>
                 <h3 className="text-2xl font-bold font-heading text-drd-text mb-1">{name}</h3>
                 <p className="text-sm text-drd-muted">{tag}</p>
-              </div>
-              <div className="flex gap-1">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <StarIcon key={i} filled={i < testimonial.rating} />
-                ))}
               </div>
             </div>
 
@@ -205,7 +206,6 @@ interface TestimonialCardProps {
 }
 
 function TestimonialCard({ testimonial, onReadMore }: TestimonialCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const contentRef = useRef<HTMLParagraphElement>(null);
   const [needsTruncation, setNeedsTruncation] = useState(false);
   const { lang } = useLang();
@@ -219,7 +219,7 @@ function TestimonialCard({ testimonial, onReadMore }: TestimonialCardProps) {
       const maxHeight = lineHeight * 6; // 6 lines
       setNeedsTruncation(contentRef.current.scrollHeight > maxHeight);
     }
-  }, []);
+  }, [content]);
 
   return (
     <motion.div
@@ -233,37 +233,35 @@ function TestimonialCard({ testimonial, onReadMore }: TestimonialCardProps) {
       {/* Quote Watermark */}
       <div className="absolute top-8 right-8 text-8xl text-drd-primary/5 font-serif leading-none pointer-events-none">❝</div>
 
-      {/* Verified Customer Badge */}
-      <div className="absolute top-4 left-4 z-10">
-        <span className="px-2.5 py-1 bg-drd-primary/10 text-drd-primary text-xs font-semibold rounded-full">
-          Verified Customer
+      {/* Verified Customer Badge + Stars in one row to avoid overlap (RTL-safe) */}
+      <div className={`flex items-center justify-between gap-3 w-full mb-4 relative z-10 ${lang === "ar" ? "flex-row-reverse" : ""}`}>
+        <span className="inline-flex items-center rounded-full px-3 py-1.5 bg-drd-primary/10 text-drd-primary text-xs font-semibold shrink-0" dir={lang === "ar" ? "rtl" : "ltr"}>
+          {tField(lang, "Verified Customer", "عميل موثّق")}
         </span>
-      </div>
-
-      {/* Rating */}
-      <div className="flex gap-1 mb-4 justify-end relative z-10">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <StarIcon key={i} filled={i < testimonial.rating} />
-        ))}
+        <div className="inline-flex items-center gap-1 shrink-0">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <StarIcon key={i} filled={i < testimonial.rating} />
+          ))}
+        </div>
       </div>
 
       {/* Quote Text */}
       <p
         ref={contentRef}
         className={`text-drd-text mb-4 leading-relaxed relative z-10 flex-1 ${
-          !isExpanded ? "line-clamp-6" : ""
+          needsTruncation ? "line-clamp-6" : ""
         }`}
       >
         {content}
       </p>
 
       {/* Read More Link */}
-      {needsTruncation && !isExpanded && (
+      {needsTruncation && (
         <button
           onClick={onReadMore}
-          className="text-sm text-drd-primary hover:text-drd-primary-dark font-medium mb-4 text-left relative z-10 transition-colors"
+          className={`text-sm text-drd-primary hover:text-drd-primary-dark font-medium mb-4 relative z-10 transition-colors ${lang === "ar" ? "text-right w-full" : "text-left"}`}
         >
-          Read more →
+          {tField(lang, "Read more →", "اقرأ المزيد ←")}
         </button>
       )}
 
@@ -285,13 +283,16 @@ function TestimonialCard({ testimonial, onReadMore }: TestimonialCardProps) {
 
 export default function TestimonialsSection({ testimonials: propTestimonials }: { testimonials?: Testimonial[] }) {
   const testimonials = (propTestimonials && propTestimonials.length > 0) ? propTestimonials : FALLBACK_TESTIMONIALS;
+  const { lang } = useLang();
+  const isRtl = lang === "ar";
+
   const [selectedTestimonial, setSelectedTestimonial] = useState<Testimonial | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [activeDot, setActiveDot] = useState(0);
 
-  const updateScrollState = () => {
+  const updateScrollState = useCallback(() => {
     if (!scrollRef.current) return;
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
     const maxScrollLeft = scrollWidth - clientWidth;
@@ -300,11 +301,14 @@ export default function TestimonialsSection({ testimonials: propTestimonials }: 
     setCanScrollLeft(scrollLeft > threshold);
     setCanScrollRight(scrollLeft < maxScrollLeft - threshold);
 
-    // Calculate active dot based on scroll position
-    const cardWidth = 380; // Approximate card width + gap
-    const newActiveDot = Math.round(scrollLeft / cardWidth);
-    setActiveDot(Math.min(newActiveDot, testimonials.length - 1));
-  };
+    // Calculate active dot: RTL has reversed order so map scroll position to original index
+    const cardWidth = 380;
+    const rawIndex = Math.round(scrollLeft / cardWidth);
+    const newActiveDot = isRtl
+      ? Math.max(0, testimonials.length - 1 - rawIndex)
+      : Math.min(rawIndex, testimonials.length - 1);
+    setActiveDot(Math.max(0, Math.min(newActiveDot, testimonials.length - 1)));
+  }, [isRtl, testimonials.length]);
 
   useEffect(() => {
     updateScrollState();
@@ -319,25 +323,50 @@ export default function TestimonialsSection({ testimonials: propTestimonials }: 
       }
       window.removeEventListener("resize", updateScrollState);
     };
-  }, []);
+  }, [updateScrollState]);
 
-  const scrollLeft = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: -380, behavior: "smooth" });
-    }
+  const scrollAmount = 380;
+  const cardWidth = 380;
+  const scrollPrev = () => {
+    if (scrollRef.current) scrollRef.current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
   };
+  const scrollNext = () => {
+    if (scrollRef.current) scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+  };
+  // With reversed order in RTL: left button scrolls left (scrollBy -) = cards move left. Same as LTR for scroll direction.
+  const leftHandler = scrollPrev;
+  const rightHandler = scrollNext;
+  const leftDisabled = !canScrollLeft;
+  const rightDisabled = !canScrollRight;
 
-  const scrollRight = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 380, behavior: "smooth" });
+  const renderedTestimonials = isRtl ? [...testimonials].reverse() : testimonials;
+
+  // RTL: one-time initial scroll so first card appears on the right (end of scroll content)
+  const rtlScrollInitDoneRef = useRef(false);
+  useEffect(() => {
+    if (lang !== "ar") {
+      rtlScrollInitDoneRef.current = false;
+      return;
     }
-  };
+    if (renderedTestimonials.length === 0 || rtlScrollInitDoneRef.current) return;
+    const t = setTimeout(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const max = el.scrollWidth - el.clientWidth;
+      if (max > 0) {
+        el.scrollLeft = max;
+        updateScrollState();
+      }
+      rtlScrollInitDoneRef.current = true;
+    }, 80);
+    return () => clearTimeout(t);
+  }, [lang, renderedTestimonials.length, updateScrollState]);
 
   return (
-    <section className="relative py-16 md:py-20 overflow-hidden">
+    <section id="testimonials" className="relative py-16 md:py-20 overflow-hidden">
       {/* Subtle off-white background */}
       <div className="absolute inset-0 bg-[#fbfcfa]" />
-
+      <DecorativeVeggies section="testimonials" />
       {/* Decorative gradients */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-drd-primary/12 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-80 h-80 bg-drd-accent/8 rounded-full blur-3xl pointer-events-none" />
@@ -355,52 +384,61 @@ export default function TestimonialsSection({ testimonials: propTestimonials }: 
         {/* Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold font-heading text-drd-text mb-4">
-            Loved by Healthy Food Lovers
+            {tField(lang, "Loved by Healthy Food Lovers", "محبوب من عشّاق الأكل الصحي")}
           </h2>
-          <p className="text-lg text-drd-muted max-w-2xl mx-auto">
-            People choose Dr.Diet for everyday balanced meals that fuel their active lifestyles
+          <p className="text-lg text-drd-muted max-w-2xl mx-auto text-center" dir={lang === "ar" ? "rtl" : "ltr"}>
+            {tField(
+              lang,
+              "People choose Dr.Diet for everyday balanced meals that fuel their active lifestyles",
+              "يختار الناس د.دايت لوجبات يومية متوازنة تدعم أسلوب حياتهم النشط"
+            )}
           </p>
         </div>
 
         {/* Carousel Container */}
         <div className="relative">
-          {/* Left Arrow */}
+          {/* Left Arrow: RTL = next (scroll right), LTR = prev (scroll left) */}
           <button
             type="button"
-            onClick={scrollLeft}
-            disabled={!canScrollLeft}
-            className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-12 h-12 rounded-full border-2 border-drd-primary text-drd-primary hover:bg-drd-primary hover:text-white transition-all duration-200 flex items-center justify-center bg-white shadow-lg z-20 focus:outline-none focus:ring-2 focus:ring-drd-primary focus:ring-offset-2 ${
-              canScrollLeft ? "opacity-100" : "opacity-0 pointer-events-none"
+            onClick={leftHandler}
+            disabled={leftDisabled}
+            className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-12 h-12 rounded-full border-2 transition-all duration-200 flex items-center justify-center bg-white shadow-lg z-20 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+              isRtl
+                ? `border-drd-accent text-drd-accent hover:bg-drd-accent hover:text-white focus:ring-drd-accent ${leftDisabled ? "opacity-0 pointer-events-none" : "opacity-100"}`
+                : `border-drd-primary text-drd-primary hover:bg-drd-primary hover:text-white focus:ring-drd-primary ${leftDisabled ? "opacity-0 pointer-events-none" : "opacity-100"}`
             }`}
-            aria-label="Scroll left"
+            aria-label={isRtl ? "Scroll next" : "Scroll left"}
           >
             <ChevronLeftIcon />
           </button>
 
-          {/* Scrollable Carousel */}
+          {/* Scrollable Carousel: dir="ltr" so scrollBy is consistent in RTL */}
           <div
             ref={scrollRef}
+            dir="ltr"
             className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 px-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
-            {testimonials.map((testimonial, index) => (
+            {renderedTestimonials.map((testimonial, index) => (
               <TestimonialCard
-                key={index}
+                key={isRtl ? testimonials.length - 1 - index : index}
                 testimonial={testimonial}
                 onReadMore={() => setSelectedTestimonial(testimonial)}
               />
             ))}
           </div>
 
-          {/* Right Arrow */}
+          {/* Right Arrow: RTL = prev (scroll left), LTR = next (scroll right) */}
           <button
             type="button"
-            onClick={scrollRight}
-            disabled={!canScrollRight}
-            className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-12 h-12 rounded-full border-2 border-drd-accent text-drd-accent hover:bg-drd-accent hover:text-white transition-all duration-200 flex items-center justify-center bg-white shadow-lg z-20 focus:outline-none focus:ring-2 focus:ring-drd-accent focus:ring-offset-2 ${
-              canScrollRight ? "opacity-100" : "opacity-0 pointer-events-none"
+            onClick={rightHandler}
+            disabled={rightDisabled}
+            className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-12 h-12 rounded-full border-2 transition-all duration-200 flex items-center justify-center bg-white shadow-lg z-20 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+              isRtl
+                ? `border-drd-primary text-drd-primary hover:bg-drd-primary hover:text-white focus:ring-drd-primary ${rightDisabled ? "opacity-0 pointer-events-none" : "opacity-100"}`
+                : `border-drd-accent text-drd-accent hover:bg-drd-accent hover:text-white focus:ring-drd-accent ${rightDisabled ? "opacity-0 pointer-events-none" : "opacity-100"}`
             }`}
-            aria-label="Scroll right"
+            aria-label={isRtl ? "Scroll previous" : "Scroll right"}
           >
             <ChevronRightIcon />
           </button>
@@ -410,14 +448,14 @@ export default function TestimonialsSection({ testimonials: propTestimonials }: 
         <div className="flex justify-center gap-2 mt-6">
           {testimonials.map((_, index) => {
             const isActive = index === activeDot;
+            const scrollTarget = isRtl ? (testimonials.length - 1 - index) * cardWidth : index * cardWidth;
             return (
               <button
                 key={index}
                 type="button"
                 onClick={() => {
                   if (scrollRef.current) {
-                    const cardWidth = 380;
-                    scrollRef.current.scrollTo({ left: index * cardWidth, behavior: "smooth" });
+                    scrollRef.current.scrollTo({ left: scrollTarget, behavior: "smooth" });
                   }
                 }}
                 className={`h-2 rounded-full transition-all duration-300 hover:bg-drd-primary/60 ${

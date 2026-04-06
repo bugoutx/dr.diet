@@ -199,6 +199,9 @@ function VideoModal({ reel, reels, currentIndex, onClose, onNavigate }: VideoMod
 }
 
 export default function ReelsGallery({ reels }: { reels: Reel[] }) {
+  const { lang } = useLang();
+  const isRtl = lang === "ar";
+
   const items = reels.length > 0 ? reels : [{ id: "fb1", src: "/reels/reel-1.mp4", poster: "", titleEn: undefined, titleAr: undefined }];
   const count = items.length;
   const useLoop = count >= 5;
@@ -209,16 +212,19 @@ export default function ReelsGallery({ reels }: { reels: Reel[] }) {
   const [translateX, setTranslateX] = useState(0);
   const [direction, setDirection] = useState(-1);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
-  const lastTimeRef = useRef<number>(0);
   const trackWidthRef = useRef(0);
   const containerWidthRef = useRef(0);
 
   const slotWidth = SLIDE_WIDTH_PX + GAP_PX;
   const singleCopyWidth = count * slotWidth - GAP_PX;
   const loopThreshold = singleCopyWidth;
+
+  /** In RTL we mirror the transform so the track moves right (content flows RTL). Center/visibility use this. */
+  const displayTranslateX = isRtl ? -translateX : translateX;
 
   const handleReelClick = useCallback((reelIndex: number) => setSelectedIndex(reelIndex), []);
   const handleModalClose = useCallback(() => setSelectedIndex(null), []);
@@ -231,11 +237,13 @@ export default function ReelsGallery({ reels }: { reels: Reel[] }) {
     const ro = new ResizeObserver(() => {
       trackWidthRef.current = track.offsetWidth;
       containerWidthRef.current = container.offsetWidth;
+      setContainerWidth(container.offsetWidth);
     });
     ro.observe(track);
     ro.observe(container);
     trackWidthRef.current = track.offsetWidth;
     containerWidthRef.current = container.offsetWidth;
+    setContainerWidth(container.offsetWidth);
     return () => ro.disconnect();
   }, [trackLength]);
 
@@ -277,20 +285,22 @@ export default function ReelsGallery({ reels }: { reels: Reel[] }) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [useLoop, loopThreshold, direction, noScroll]);
 
-  const centerDisplayIndex = Math.round((containerWidthRef.current / 2 - translateX - SLIDE_WIDTH_PX / 2) / slotWidth);
+  const cwForLayout = containerWidth > 0 ? containerWidth : 800;
+  const centerDisplayIndex = Math.round(
+    (cwForLayout / 2 - displayTranslateX - SLIDE_WIDTH_PX / 2) / slotWidth
+  );
   const centerDisplayIndexWrapped = useLoop
     ? ((centerDisplayIndex % trackLength) + trackLength) % trackLength
     : Math.max(0, Math.min(count - 1, centerDisplayIndex));
-  const centerReelIndex = centerDisplayIndexWrapped % count;
 
   const isVisible = useCallback(
     (displayIndex: number) => {
-      const cw = containerWidthRef.current || 800;
-      const cardLeft = translateX + displayIndex * slotWidth;
+      const cw = cwForLayout;
+      const cardLeft = displayTranslateX + displayIndex * slotWidth;
       const cardRight = cardLeft + SLIDE_WIDTH_PX;
       return cardRight > -slotWidth && cardLeft < cw + slotWidth;
     },
-    [translateX]
+    [displayTranslateX, slotWidth, cwForLayout]
   );
 
   const selectedReel = selectedIndex != null ? items[selectedIndex] ?? null : null;
@@ -302,7 +312,7 @@ export default function ReelsGallery({ reels }: { reels: Reel[] }) {
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-hidden">
         <div className="text-center mb-6">
-          <p className="text-sm font-medium text-drd-primary uppercase tracking-wider">Reels</p>
+          <p className="text-sm font-medium text-drd-primary uppercase tracking-wider">{tField(lang, "Reels", "فيديوهات")}</p>
         </div>
 
         <div
@@ -315,7 +325,7 @@ export default function ReelsGallery({ reels }: { reels: Reel[] }) {
               className="flex items-center gap-5"
               style={{
                 width: "max-content",
-                transform: noScroll ? undefined : `translateX(${translateX}px)`,
+                transform: noScroll ? undefined : `translateX(${displayTranslateX}px)`,
                 willChange: noScroll ? undefined : "transform",
               }}
             >

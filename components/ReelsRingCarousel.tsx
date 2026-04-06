@@ -34,14 +34,12 @@ interface ReelCardProps {
   reel: Reel;
   angle: number;
   radius: number;
-  isFront: boolean;
   depth: number; // 0-1, where 1 is front
   onClick: () => void;
   videoRef: (el: HTMLVideoElement | null) => void;
-  sectionInView: boolean;
 }
 
-function ReelCard({ reel, angle, radius, isFront, depth, onClick, videoRef, sectionInView }: ReelCardProps) {
+function ReelCard({ reel, angle, radius, depth, onClick, videoRef }: ReelCardProps) {
   const opacity = 0.35 + (1 - 0.35) * depth;
   const blur = (1 - depth) * 1;
   const scale = 0.7 + (1 - 0.7) * depth;
@@ -210,6 +208,7 @@ export default function ReelsRingCarousel() {
   const ringRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const wheelSnapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Responsive radius
   const radius = useMemo(() => {
@@ -432,10 +431,12 @@ export default function ReelsRingCarousel() {
     e.preventDefault();
     const delta = e.deltaY * 0.1; // Small increments
     rotationRef.current = (rotationRef.current - delta) % 360;
-    
-    // Snap after wheel stops
-    clearTimeout((handleWheel as any).snapTimeout);
-    (handleWheel as any).snapTimeout = setTimeout(() => {
+
+    if (wheelSnapTimeoutRef.current !== null) {
+      clearTimeout(wheelSnapTimeoutRef.current);
+    }
+    wheelSnapTimeoutRef.current = setTimeout(() => {
+      wheelSnapTimeoutRef.current = null;
       const N = REELS.length;
       const spacing = 360 / N;
       const normalized = ((rotationRef.current % 360) + 360) % 360;
@@ -531,19 +532,15 @@ export default function ReelsRingCarousel() {
                 const distance = Math.min(diff, 360 - diff);
                 const maxDistance = 180;
                 const depth = 1 - (distance / maxDistance);
-                const isFront = depth > 0.9;
-
                 return (
                   <ReelCard
                     key={reel.id}
                     reel={reel}
                     angle={angle}
                     radius={currentRadius}
-                    isFront={isFront}
                     depth={depth}
                     onClick={() => handleReelClick(reel)}
                     videoRef={setVideoRef(reel.id)}
-                    sectionInView={sectionInView}
                   />
                 );
               })}

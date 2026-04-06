@@ -6,10 +6,13 @@ import { requireAdmin } from "@/lib/adminGuard";
 
 const updateMealSchema = z.object({
   title: z.string().min(1).optional(),
+  titleAr: z.string().optional().nullable(),
   subtitle: z.string().optional().nullable(),
+  subtitleAr: z.string().optional().nullable(),
   calories: z.number().int().min(0).optional().nullable(),
   protein: z.number().int().min(0).optional().nullable(),
   badge: z.string().optional().nullable(),
+  badgeAr: z.string().optional().nullable(),
   imageUrl: z.string().optional().nullable(),
   sortOrder: z.number().int().min(0).max(2).optional(),
 });

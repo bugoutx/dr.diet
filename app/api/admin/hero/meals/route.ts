@@ -8,10 +8,13 @@ const MAX_HERO_MEALS = 3;
 
 const createMealSchema = z.object({
   title: z.string().min(1),
+  titleAr: z.string().optional().nullable(),
   subtitle: z.string().optional().nullable(),
+  subtitleAr: z.string().optional().nullable(),
   calories: z.number().int().min(0).optional().nullable(),
   protein: z.number().int().min(0).optional().nullable(),
   badge: z.string().optional().nullable(),
+  badgeAr: z.string().optional().nullable(),
   imageUrl: z.string().optional().nullable(),
 });
 
@@ -43,10 +46,13 @@ export async function POST(req: NextRequest) {
   const meal = await prisma.heroMeal.create({
     data: {
       title: parsed.data.title,
+      titleAr: parsed.data.titleAr ?? undefined,
       subtitle: parsed.data.subtitle ?? undefined,
+      subtitleAr: parsed.data.subtitleAr ?? undefined,
       calories: parsed.data.calories ?? undefined,
       protein: parsed.data.protein ?? undefined,
       badge: parsed.data.badge ?? undefined,
+      badgeAr: parsed.data.badgeAr ?? undefined,
       imageUrl: parsed.data.imageUrl ?? undefined,
       sortOrder: nextOrder,
     },

@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { formatNumber } from "@/lib/formatNumber";
 import { useLang } from "@/lib/LangContext";
 import { tField } from "@/lib/tField";
+import DecorativeVeggies from "@/components/DecorativeVeggies";
 
 export type Plan = {
   id: string;
@@ -172,10 +173,9 @@ const cardVariants = {
 type PlanCardProps = {
   plan: Plan;
   billingPeriod: "weekly" | "monthly";
-  index: number;
 };
 
-function PlanCard({ plan, billingPeriod, index }: PlanCardProps) {
+function PlanCard({ plan, billingPeriod }: PlanCardProps) {
   const { lang } = useLang();
   const isPopular = plan.isPopular ?? false;
   const displayPrice =
@@ -251,8 +251,8 @@ function PlanCard({ plan, billingPeriod, index }: PlanCardProps) {
           <div className="border-t border-slate-200/60 pt-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-drd-primary tracking-tight">
-                {formatNumber(displayPrice ?? 0, lang)}{" "}
-                <span className="text-sm font-medium opacity-70">SYP</span>
+                {formatNumber(displayPrice ?? 0)}{" "}
+                <span className="text-sm font-medium opacity-70">{lang === "ar" ? "ل.س" : "SYP"}</span>
               </p>
               <p className="mt-1.5 text-xs text-drd-text/60 font-medium">
                 {periodLabel}
@@ -287,10 +287,11 @@ export default function PlanSubscriptionsSection({ plans: propPlans }: { plans?:
       : tField(lang, LABELS.emptyMonthly.en, LABELS.emptyMonthly.ar);
 
   return (
-    <section id="plans" className="relative bg-white py-16 sm:py-20">
+    <section id="plans" className="relative overflow-hidden bg-white py-16 sm:py-20">
+      <DecorativeVeggies section="plans" />
       <div className="absolute inset-0 bg-gradient-radial from-emerald-50/20 via-transparent to-transparent pointer-events-none" />
 
-      <div className="relative mx-auto max-w-[1400px] px-4 lg:px-6">
+      <div className="relative z-10 mx-auto max-w-[1400px] px-4 lg:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -367,7 +368,7 @@ export default function PlanSubscriptionsSection({ plans: propPlans }: { plans?:
                   : undefined,
             }}
           >
-            {filteredPlans.map((plan, index) => (
+            {filteredPlans.map((plan) => (
               <div
                 key={plan.id}
                 className="lg:snap-center lg:flex-shrink-0 lg:w-[min(320px,85vw)] lg:max-w-[320px]"
@@ -375,7 +376,6 @@ export default function PlanSubscriptionsSection({ plans: propPlans }: { plans?:
                 <PlanCard
                   plan={plan}
                   billingPeriod={billingPeriod}
-                  index={index}
                 />
               </div>
             ))}

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import InlineLoader from "@/components/admin/InlineLoader";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
 type Testimonial = {
   id: string;
@@ -32,6 +34,7 @@ function StarDots({ rating }: { rating: number }) {
 }
 
 export default function AdminTestimonialsPage() {
+  const { lang } = useLang();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
   const [reordering, setReordering] = useState(false);
@@ -90,11 +93,11 @@ export default function AdminTestimonialsPage() {
     const name = formName.trim();
     const text = formText.trim();
     if (name.length < 2) {
-      toast.error("Name must be at least 2 characters");
+      toast.error(tField(lang, "Name must be at least 2 characters", "الاسم يجب أن يكون حرفين على الأقل"));
       return;
     }
     if (text.length < 10) {
-      toast.error("Quote must be at least 10 characters");
+      toast.error(tField(lang, "Quote must be at least 10 characters", "الاقتباس يجب أن يكون 10 أحرف على الأقل"));
       return;
     }
     setSavingId(editingId ?? "new");
@@ -118,7 +121,7 @@ export default function AdminTestimonialsPage() {
           throw new Error(msg);
         }
         setTestimonials((prev) => [...prev, data].sort((a, b) => a.sortOrder - b.sortOrder));
-        toast.success("Testimonial added");
+        toast.success(tField(lang, "Testimonial added", "تمت إضافة الشهادة"));
       } else {
         if (!editingId) return;
         const res = await fetch(`/api/admin/testimonials/${editingId}`, {
@@ -139,18 +142,18 @@ export default function AdminTestimonialsPage() {
           throw new Error(msg);
         }
         setTestimonials((prev) => prev.map((t) => (t.id === editingId ? data : t)));
-        toast.success("Updated");
+        toast.success(tField(lang, "Updated", "تم التحديث"));
       }
       closeModal();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+      toast.error(e instanceof Error ? e.message : tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setSavingId(null);
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this testimonial?")) return;
+    if (!confirm(tField(lang, "Delete this testimonial?", "حذف هذه الشهادة؟"))) return;
     try {
       const res = await fetch(`/api/admin/testimonials/${id}`, { method: "DELETE", credentials: "include" });
       if (!res.ok) throw new Error("Failed to delete");
@@ -177,10 +180,10 @@ export default function AdminTestimonialsPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error ?? "Failed to update");
       }
-      toast.success("Updated");
+      toast.success(tField(lang, "Updated", "تم التحديث"));
     } catch (e) {
       setTestimonials((prev) => prev.map((x) => (x.id === t.id ? { ...x, isActive: !next } : x)));
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+      toast.error(e instanceof Error ? e.message : tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setTogglingId(null);
     }
@@ -201,12 +204,12 @@ export default function AdminTestimonialsPage() {
       body: JSON.stringify({ ids }),
     })
       .then((res) => {
-        if (res.ok) toast.success("Order updated");
+        if (res.ok) toast.success(tField(lang, "Order updated", "تم تحديث الترتيب"));
         else return res.json().then((d) => { throw new Error(d?.error ?? "Failed to reorder"); });
       })
       .catch((e) => {
         setTestimonials(testimonials);
-        toast.error(e instanceof Error ? e.message : "Something went wrong");
+        toast.error(e instanceof Error ? e.message : tField(lang, "Something went wrong", "حدث خطأ ما"));
       })
       .finally(() => setReordering(false));
   }
@@ -214,7 +217,7 @@ export default function AdminTestimonialsPage() {
   if (loading) {
     return (
       <div>
-        <AdminPageHeader title="Testimonials" backLabel="Dashboard" backHref="/admin" showBack={false} />
+        <AdminPageHeader title={tField(lang, "Testimonials", "الشهادات")} backLabel={tField(lang, "Dashboard", "لوحة التحكم")} backHref="/admin" showBack={false} />
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-24 rounded-xl border border-slate-200 bg-slate-50 animate-pulse" />
@@ -227,8 +230,8 @@ export default function AdminTestimonialsPage() {
   return (
     <div>
       <AdminPageHeader
-        title="Testimonials"
-        backLabel="Dashboard"
+        title={tField(lang, "Testimonials", "الشهادات")}
+        backLabel={tField(lang, "Dashboard", "لوحة التحكم")}
         backHref="/admin"
         showBack={false}
         actions={
@@ -237,17 +240,17 @@ export default function AdminTestimonialsPage() {
             onClick={openAdd}
             className="rounded-full bg-drd-primary px-5 py-2 font-semibold text-white hover:bg-drd-primary-dark"
           >
-            Add Testimonial
+            {tField(lang, "Add Testimonial", "إضافة شهادة")}
           </button>
         }
       />
       <p className="text-drd-muted mb-6">
-        Manage customer testimonials. Only active ones appear on the landing page. Drag order with ▲▼.
+        {tField(lang, "Manage customer testimonials. Only active ones appear on the landing page. Use ▲▼ to reorder.", "إدارة شهادات العملاء. تظهر النشطة فقط على الصفحة الرئيسية. استخدم ▲▼ لإعادة الترتيب.")}
       </p>
 
       <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm text-drd-muted">Use ▲▼ to reorder</span>
-        {reordering && <InlineLoader label="Saving order…" />}
+        <span className="text-sm text-drd-muted">{tField(lang, "Use ▲▼ to reorder", "استخدم ▲▼ لإعادة الترتيب")}</span>
+        {reordering && <InlineLoader label={tField(lang, "Saving order…", "جاري حفظ الترتيب…")} />}
       </div>
       <div className="space-y-4">
         {testimonials.map((t, index) => (
@@ -261,7 +264,7 @@ export default function AdminTestimonialsPage() {
                 onClick={() => moveTestimonial(index, "up")}
                 disabled={reordering || index === 0}
                 className="rounded p-1 text-drd-text/60 hover:bg-slate-100 disabled:opacity-30"
-                aria-label="Move up"
+                aria-label={tField(lang, "Move up", "تحريك لأعلى")}
               >
                 ▲
               </button>
@@ -270,7 +273,7 @@ export default function AdminTestimonialsPage() {
                 onClick={() => moveTestimonial(index, "down")}
                 disabled={reordering || index === testimonials.length - 1}
                 className="rounded p-1 text-drd-text/60 hover:bg-slate-100 disabled:opacity-30"
-                aria-label="Move down"
+                aria-label={tField(lang, "Move down", "تحريك لأسفل")}
               >
                 ▼
               </button>
@@ -285,7 +288,7 @@ export default function AdminTestimonialsPage() {
             </div>
             <StarDots rating={t.rating} />
             <label className="flex items-center gap-2">
-              <span className="text-sm text-drd-muted">Active</span>
+              <span className="text-sm text-drd-muted">{tField(lang, "Active", "مفعل")}</span>
               <input
                 type="checkbox"
                 checked={t.isActive}
@@ -300,21 +303,21 @@ export default function AdminTestimonialsPage() {
               onClick={() => openEdit(t)}
               className="text-sm text-drd-primary hover:underline"
             >
-              Edit
+              {tField(lang, "Edit", "تعديل")}
             </button>
             <button
               type="button"
               onClick={() => handleDelete(t.id)}
               className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
             >
-              Delete
+              {tField(lang, "Delete", "حذف")}
             </button>
           </div>
         ))}
       </div>
 
       {testimonials.length === 0 && (
-        <p className="text-drd-muted">No testimonials yet. Click &quot;Add Testimonial&quot; to create one.</p>
+        <p className="text-drd-muted">{tField(lang, "No testimonials yet. Click \"Add Testimonial\" to create one.", "لا توجد شهادات بعد. انقر \"إضافة شهادة\" لإنشاء واحدة.")}</p>
       )}
 
       {/* Add / Edit Modal */}
@@ -328,7 +331,7 @@ export default function AdminTestimonialsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-bold text-drd-text mb-4">
-              {modalOpen === "add" ? "Add Testimonial" : "Edit Testimonial"}
+              {modalOpen === "add" ? tField(lang, "Add Testimonial", "إضافة شهادة") : tField(lang, "Edit Testimonial", "تعديل الشهادة")}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -389,7 +392,7 @@ export default function AdminTestimonialsPage() {
                   onChange={(e) => setFormActive(e.target.checked)}
                   className="rounded border-slate-300"
                 />
-                <span className="text-sm text-drd-text">Active (show on landing)</span>
+                <span className="text-sm text-drd-text">{tField(lang, "Active (show on landing)", "مفعل (يظهر على الصفحة الرئيسية)")}</span>
               </label>
               <div className="flex gap-2 pt-2">
                 <button
@@ -397,14 +400,14 @@ export default function AdminTestimonialsPage() {
                   disabled={!!savingId}
                   className="rounded-full bg-drd-primary px-5 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-50"
                 >
-                  {savingId ? "Saving…" : modalOpen === "add" ? "Create" : "Save"}
+                  {savingId ? tField(lang, "Saving…", "جاري الحفظ…") : modalOpen === "add" ? tField(lang, "Create", "إنشاء") : tField(lang, "Save", "حفظ")}
                 </button>
                 <button
                   type="button"
                   onClick={closeModal}
                   className="rounded-full border border-slate-200 px-5 py-2 font-semibold text-drd-text hover:bg-slate-50"
                 >
-                  Cancel
+                  {tField(lang, "Cancel", "إلغاء")}
                 </button>
               </div>
             </form>

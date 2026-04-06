@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import InlineLoader from "@/components/admin/InlineLoader";
 import { formatNumber } from "@/lib/formatNumber";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
 type SubscriptionPlan = {
   id: string;
@@ -29,6 +31,7 @@ function parseFeatures(v: unknown): string[] {
 }
 
 export default function AdminPlansPage() {
+  const { lang } = useLang();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [reordering, setReordering] = useState(false);
@@ -130,11 +133,11 @@ export default function AdminPlansPage() {
     const titleEn = formTitleEn.trim();
     const titleAr = formTitleAr.trim();
     if (!titleEn || !titleAr) {
-      toast.error("Title (EN and AR) is required");
+      toast.error(tField(lang, "Title (EN and AR) is required", "العنوان (إنجليزي وعربي) مطلوب"));
       return;
     }
     if (!hasPrice) {
-      toast.error("At least one of Weekly or Monthly price must be set");
+      toast.error(tField(lang, "At least one of Weekly or Monthly price must be set", "يجب تحديد السعر الأسبوعي أو الشهري على الأقل"));
       return;
     }
     const payload = {
@@ -164,7 +167,7 @@ export default function AdminPlansPage() {
           throw new Error(msg);
         }
         setPlans((prev) => [...prev, { ...data, featuresEn: parseFeatures(data.featuresEn), featuresAr: parseFeatures(data.featuresAr) }].sort((a, b) => a.order - b.order));
-        toast.success("Plan added");
+        toast.success(tField(lang, "Plan added", "تمت إضافة الخطة"));
       } else {
         if (!editingId) return;
         const res = await fetch(`/api/admin/subscription-plans/${editingId}`, {
@@ -183,11 +186,11 @@ export default function AdminPlansPage() {
             p.id === editingId ? { ...data, featuresEn: parseFeatures(data.featuresEn), featuresAr: parseFeatures(data.featuresAr) } : p
           )
         );
-        toast.success("Updated");
+        toast.success(tField(lang, "Updated", "تم التحديث"));
       }
       closeModal();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+      toast.error(e instanceof Error ? e.message : tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setSavingId(null);
     }
@@ -200,9 +203,9 @@ export default function AdminPlansPage() {
       if (!res.ok) throw new Error("Failed to delete");
       setPlans((prev) => prev.filter((p) => p.id !== id));
       if (editingId === id) closeModal();
-      toast.success("Deleted");
+      toast.success(tField(lang, "Deleted", "تم الحذف"));
     } catch {
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     }
   }
 
@@ -221,10 +224,10 @@ export default function AdminPlansPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error ?? "Failed to update");
       }
-      toast.success("Updated");
+      toast.success(tField(lang, "Updated", "تم التحديث"));
     } catch (e) {
       setPlans((prev) => prev.map((x) => (x.id === p.id ? { ...x, isActive: !next } : x)));
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+      toast.error(e instanceof Error ? e.message : tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setTogglingId(null);
     }
@@ -245,10 +248,10 @@ export default function AdminPlansPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error ?? "Failed to update");
       }
-      toast.success("Updated");
+      toast.success(tField(lang, "Updated", "تم التحديث"));
     } catch (e) {
       setPlans((prev) => prev.map((x) => (x.id === p.id ? { ...x, isPopular: !next } : x)));
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+      toast.error(e instanceof Error ? e.message : tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setTogglingId(null);
     }
@@ -269,12 +272,12 @@ export default function AdminPlansPage() {
       body: JSON.stringify({ ids }),
     })
       .then((res) => {
-        if (res.ok) toast.success("Order updated");
+        if (res.ok) toast.success(tField(lang, "Order updated", "تم تحديث الترتيب"));
         else return res.json().then((d) => { throw new Error(d?.error ?? "Failed to reorder"); });
       })
       .catch((e) => {
         setPlans(plans);
-        toast.error(e instanceof Error ? e.message : "Something went wrong");
+        toast.error(e instanceof Error ? e.message : tField(lang, "Something went wrong", "حدث خطأ ما"));
       })
       .finally(() => setReordering(false));
   }
@@ -282,7 +285,7 @@ export default function AdminPlansPage() {
   if (loading) {
     return (
       <div>
-        <AdminPageHeader title="Subscription Plans" backLabel="Dashboard" backHref="/admin" showBack={false} />
+        <AdminPageHeader title={tField(lang, "Subscription Plans", "خطط الاشتراك")} backLabel={tField(lang, "Dashboard", "لوحة التحكم")} backHref="/admin" showBack={false} />
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-24 rounded-xl border border-slate-200 bg-slate-50 animate-pulse" />
@@ -295,8 +298,8 @@ export default function AdminPlansPage() {
   return (
     <div>
       <AdminPageHeader
-        title="Subscription Plans"
-        backLabel="Dashboard"
+        title={tField(lang, "Subscription Plans", "خطط الاشتراك")}
+        backLabel={tField(lang, "Dashboard", "لوحة التحكم")}
         backHref="/admin"
         showBack={false}
         actions={
@@ -305,17 +308,17 @@ export default function AdminPlansPage() {
             onClick={openAdd}
             className="rounded-full bg-drd-primary px-5 py-2 font-semibold text-white hover:bg-drd-primary-dark"
           >
-            Add Plan
+            {tField(lang, "Add Plan", "إضافة خطة")}
           </button>
         }
       />
       <p className="text-drd-muted mb-6">
-        Manage subscription plans. Only active plans appear on the landing page. Use ▲▼ to reorder.
+        {tField(lang, "Manage subscription plans. Only active plans appear on the landing page. Use ▲▼ to reorder.", "إدارة خطط الاشتراك. تظهر الخطط النشطة فقط على الصفحة الرئيسية. استخدم ▲▼ لإعادة الترتيب.")}
       </p>
 
       <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm text-drd-muted">Use ▲▼ to reorder</span>
-        {reordering && <InlineLoader label="Saving order…" />}
+        <span className="text-sm text-drd-muted">{tField(lang, "Use ▲▼ to reorder", "استخدم ▲▼ لإعادة الترتيب")}</span>
+        {reordering && <InlineLoader label={tField(lang, "Saving order…", "جاري حفظ الترتيب…")} />}
       </div>
       <div className="space-y-4">
         {plans.map((p, index) => (
@@ -329,7 +332,7 @@ export default function AdminPlansPage() {
                 onClick={() => movePlan(index, "up")}
                 disabled={reordering || index === 0}
                 className="rounded p-1 text-drd-text/60 hover:bg-slate-100 disabled:opacity-30"
-                aria-label="Move up"
+                aria-label={tField(lang, "Move up", "تحريك لأعلى")}
               >
                 ▲
               </button>
@@ -338,7 +341,7 @@ export default function AdminPlansPage() {
                 onClick={() => movePlan(index, "down")}
                 disabled={reordering || index === plans.length - 1}
                 className="rounded p-1 text-drd-text/60 hover:bg-slate-100 disabled:opacity-30"
-                aria-label="Move down"
+                aria-label={tField(lang, "Move down", "تحريك لأسفل")}
               >
                 ▼
               </button>
@@ -357,11 +360,11 @@ export default function AdminPlansPage() {
             </div>
             {p.isPopular && (
               <span className="rounded-full bg-drd-primary/20 px-2 py-0.5 text-xs font-medium text-drd-primary">
-                Popular
+                {tField(lang, "Popular", "الأكثر شعبية")}
               </span>
             )}
             <label className="flex items-center gap-2">
-              <span className="text-sm text-drd-muted">Active</span>
+              <span className="text-sm text-drd-muted">{tField(lang, "Active", "مفعل")}</span>
               <input
                 type="checkbox"
                 checked={p.isActive}
@@ -372,7 +375,7 @@ export default function AdminPlansPage() {
               {togglingId === p.id && <InlineLoader label="" />}
             </label>
             <label className="flex items-center gap-2">
-              <span className="text-sm text-drd-muted">Popular</span>
+              <span className="text-sm text-drd-muted">{tField(lang, "Popular", "الأكثر شعبية")}</span>
               <input
                 type="checkbox"
                 checked={p.isPopular}
@@ -382,21 +385,21 @@ export default function AdminPlansPage() {
               />
             </label>
             <button type="button" onClick={() => openEdit(p)} className="text-sm text-drd-primary hover:underline">
-              Edit
+              {tField(lang, "Edit", "تعديل")}
             </button>
             <button
               type="button"
               onClick={() => setDeleteConfirmId(p.id)}
               className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
             >
-              Delete
+              {tField(lang, "Delete", "حذف")}
             </button>
           </div>
         ))}
       </div>
 
       {plans.length === 0 && (
-        <p className="text-drd-muted">No plans yet. Click &quot;Add Plan&quot; to create one.</p>
+        <p className="text-drd-muted">{tField(lang, "No plans yet. Click \"Add Plan\" to create one.", "لا توجد خطط بعد. انقر \"إضافة خطة\" لإنشاء واحدة.")}</p>
       )}
 
       {/* Delete confirm modal */}
@@ -409,22 +412,22 @@ export default function AdminPlansPage() {
             className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-bold text-drd-text mb-2">Delete plan?</h3>
-            <p className="text-drd-muted text-sm mb-4">This cannot be undone.</p>
+            <h3 className="text-lg font-bold text-drd-text mb-2">{tField(lang, "Delete plan?", "حذف الخطة؟")}</h3>
+            <p className="text-drd-muted text-sm mb-4">{tField(lang, "This cannot be undone.", "لا يمكن التراجع عن هذا.")}</p>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => handleDelete(deleteConfirmId)}
                 className="rounded-full bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
               >
-                Delete
+                {tField(lang, "Delete", "حذف")}
               </button>
               <button
                 type="button"
                 onClick={() => setDeleteConfirmId(null)}
                 className="rounded-full border border-slate-200 px-4 py-2 font-semibold text-drd-text hover:bg-slate-50"
               >
-                Cancel
+                {tField(lang, "Cancel", "إلغاء")}
               </button>
             </div>
           </div>
@@ -442,7 +445,7 @@ export default function AdminPlansPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-bold text-drd-text mb-4">
-              {modalOpen === "add" ? "Add Plan" : "Edit Plan"}
+              {modalOpen === "add" ? tField(lang, "Add Plan", "إضافة خطة") : tField(lang, "Edit Plan", "تعديل الخطة")}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

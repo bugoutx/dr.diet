@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-
 type MenuItem = {
   name: string;
   macros: string;

@@ -2,17 +2,19 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import LoadingButton from "@/components/admin/LoadingButton";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
 type MealTagShape = { labelEn: string; labelAr: string; tone: "green" | "orange" };
 
 type Category = { id: string; nameEn: string };
 
 export default function AdminMealNewPage() {
+  const { lang } = useLang();
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultCat = searchParams.get("categoryId") ?? "";
@@ -42,7 +44,9 @@ export default function AdminMealNewPage() {
       .then((r) => r.json())
       .then((c) => {
         setCategories(c);
-        if (defaultCat && !form.categoryId) setForm((f) => ({ ...f, categoryId: defaultCat }));
+        if (defaultCat) {
+          setForm((f) => (f.categoryId ? f : { ...f, categoryId: defaultCat }));
+        }
       })
       .catch(console.error);
   }, [defaultCat]);
@@ -71,14 +75,14 @@ export default function AdminMealNewPage() {
       if (url) {
         setForm((f) => ({ ...f, imageUrl: url }));
         setUploadError("");
-        toast.success("Upload complete");
+        toast.success(tField(lang, "Upload complete", "تم الرفع"));
       } else {
-        setUploadError("Upload succeeded but no URL returned.");
-        toast.error("Upload succeeded but no URL returned.");
+        setUploadError(tField(lang, "Upload succeeded but no URL returned.", "تم الرفع لكن لم يُرجع رابط."));
+        toast.error(tField(lang, "Upload succeeded but no URL returned.", "تم الرفع لكن لم يُرجع رابط."));
       }
     } catch {
-      setUploadError("Upload failed");
-      toast.error("Upload failed");
+      setUploadError(tField(lang, "Upload failed", "فشل الرفع"));
+      toast.error(tField(lang, "Upload failed", "فشل الرفع"));
     } finally {
       setUploading(false);
     }
@@ -92,7 +96,7 @@ export default function AdminMealNewPage() {
     if (!form.nameAr.trim()) missing.push("Name (Arabic)");
     if (!form.imageUrl?.trim()) missing.push("Image (upload a file or paste an image URL below)");
     if (missing.length > 0) {
-      toast.error(`Required: ${missing.join(", ")}`);
+      toast.error(tField(lang, "Required:", "مطلوب:") + " " + missing.join(", "));
       return;
     }
     setSaving(true);
@@ -116,12 +120,12 @@ export default function AdminMealNewPage() {
         }),
       });
       if (res.ok) {
-        toast.success("Meal created");
+        toast.success(tField(lang, "Meal created", "تم إنشاء الوجبة"));
         router.push("/admin/meals");
         return;
       }
       const data = await res.json().catch(() => ({}));
-      toast.error(data?.error ?? "Something went wrong");
+      toast.error(data?.error ?? tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setSaving(false);
     }
@@ -130,8 +134,8 @@ export default function AdminMealNewPage() {
   return (
     <div>
       <AdminPageHeader
-        title="Add Meal"
-        backLabel="Meals"
+        title={tField(lang, "Add Meal", "إضافة وجبة")}
+        backLabel={tField(lang, "Meals", "الوجبات")}
         backHref="/admin/meals"
       />
       <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
@@ -286,7 +290,7 @@ export default function AdminMealNewPage() {
                 }}
                 className="rounded-lg bg-drd-primary/20 text-drd-primary px-3 py-1.5 text-sm font-medium hover:bg-drd-primary/30"
               >
-                Add tag
+                {tField(lang, "Add tag", "إضافة تسمية")}
               </button>
             </div>
           </div>
@@ -320,9 +324,9 @@ export default function AdminMealNewPage() {
             disabled={uploading}
             className="rounded-lg border-2 border-drd-primary bg-white text-drd-primary px-4 py-2 font-semibold hover:bg-drd-primary/5 disabled:opacity-50"
           >
-            {uploading ? "Uploading..." : form.imageUrl ? "Change Image" : "Upload Image"}
+            {uploading ? tField(lang, "Uploading...", "جاري الرفع...") : form.imageUrl ? tField(lang, "Change Image", "استبدال الصورة") : tField(lang, "Upload Image", "رفع صورة")}
           </button>
-          <span className="ml-2 text-sm text-drd-muted">or paste URL:</span>
+          <span className="ml-2 text-sm text-drd-muted">{tField(lang, "or paste URL:", "أو الصق الرابط:")}</span>
           <input
             type="url"
             value={form.imageUrl}
@@ -346,10 +350,10 @@ export default function AdminMealNewPage() {
           type="submit"
           loading={saving}
           disabled={uploading}
-          loadingLabel="Creating…"
+          loadingLabel={tField(lang, "Creating…", "جاري الإنشاء…")}
           className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-70"
         >
-          Create Meal
+          {tField(lang, "Create Meal", "إنشاء وجبة")}
         </LoadingButton>
       </form>
     </div>

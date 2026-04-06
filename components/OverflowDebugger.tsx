@@ -56,7 +56,6 @@ export default function OverflowDebugger() {
 
         el.style.outline = "2px solid red";
         newlyFlagged.push(el);
-        // eslint-disable-next-line no-console
         console.warn("[OverflowDebugger] Page overflow element", {
           element: el,
           className: el.className,

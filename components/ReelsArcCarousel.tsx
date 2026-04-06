@@ -201,21 +201,19 @@ export default function ReelsArcCarousel({ reels }: { reels: Reel[] }) {
   const [selectedReel, setSelectedReel] = useState<Reel | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
-  // Clamp activeIndex when visible or count changes
-  useEffect(() => {
-    setActiveIndex((prev) => Math.min(prev, maxIndex));
-  }, [maxIndex]);
+  /** Clamp for layout when viewport/count shrinks (avoid effect-driven setState). */
+  const displayIndex = Math.min(activeIndex, maxIndex);
 
   // Translate from fixed card width + gap (no measurement)
-  const translatePx = showNav ? activeIndex * (cardWidth + GAP_PX) : 0;
+  const translatePx = showNav ? displayIndex * (cardWidth + GAP_PX) : 0;
   const trackTranslate = -translatePx;
 
   const handlePrev = useCallback(() => {
-    setActiveIndex((prev) => Math.max(0, prev - 1));
-  }, []);
+    setActiveIndex((prev) => Math.max(0, Math.min(prev, maxIndex) - 1));
+  }, [maxIndex]);
 
   const handleNext = useCallback(() => {
-    setActiveIndex((prev) => Math.min(maxIndex, prev + 1));
+    setActiveIndex((prev) => Math.min(maxIndex, Math.min(prev, maxIndex) + 1));
   }, [maxIndex]);
 
   const handleReelClick = useCallback((reel: Reel) => {
@@ -239,13 +237,13 @@ export default function ReelsArcCarousel({ reels }: { reels: Reel[] }) {
             }}
           >
             {items.map((reel, index) => {
-              const isActiveSlide = !showNav || (index >= activeIndex && index < activeIndex + visible);
+              const isActiveSlide = !showNav || (index >= displayIndex && index < displayIndex + visible);
               return (
                 <div key={reel.id}>
                   <SlideCard
                     reel={reel}
                     onClick={() => handleReelClick(reel)}
-                    isVisible={!showNav || (index >= activeIndex && index < activeIndex + visible)}
+                    isVisible={!showNav || (index >= displayIndex && index < displayIndex + visible)}
                     isActive={isActiveSlide}
                   />
                 </div>
@@ -259,7 +257,7 @@ export default function ReelsArcCarousel({ reels }: { reels: Reel[] }) {
               <button
                 type="button"
                 onClick={handlePrev}
-                disabled={activeIndex === 0}
+                disabled={displayIndex === 0}
                 className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full border-2 border-drd-primary text-drd-primary hover:bg-drd-primary hover:text-white transition-all duration-200 flex items-center justify-center bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-drd-primary focus:ring-offset-2 z-10 disabled:opacity-40 disabled:pointer-events-none"
                 aria-label="Previous"
               >
@@ -270,7 +268,7 @@ export default function ReelsArcCarousel({ reels }: { reels: Reel[] }) {
               <button
                 type="button"
                 onClick={handleNext}
-                disabled={activeIndex >= maxIndex}
+                disabled={displayIndex >= maxIndex}
                 className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full border-2 border-drd-accent text-drd-accent hover:bg-drd-accent hover:text-white transition-all duration-200 flex items-center justify-center bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-drd-accent focus:ring-offset-2 z-10 disabled:opacity-40 disabled:pointer-events-none"
                 aria-label="Next"
               >
@@ -289,10 +287,10 @@ export default function ReelsArcCarousel({ reels }: { reels: Reel[] }) {
               <button
                 key={index}
                 type="button"
-                onClick={() => setActiveIndex(index)}
+                onClick={() => setActiveIndex(Math.min(index, maxIndex))}
                 aria-label={`Go to video ${index + 1}`}
                 className={`w-2 h-2 rounded-full transition-colors ${
-                  index === activeIndex ? "bg-drd-primary scale-125" : "bg-slate-300 hover:bg-slate-400"
+                  index === displayIndex ? "bg-drd-primary scale-125" : "bg-slate-300 hover:bg-slate-400"
                 }`}
               />
             ))}

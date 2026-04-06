@@ -20,7 +20,17 @@ export const HERO_FALLBACK_MEALS = [
 
 async function getHeroContentRaw() {
   const row = await prisma.heroContent.findUnique({ where: { id: "singleton" } });
-  return row ?? { slogan: "Don't eat less, eat Right.", title: "HEALTHY FOOD, DONE RIGHT.", description: "Dr.Diet is a healthy food restaurant offering fresh salads, energy dishes, sandwiches, breakfasts, toast, juices, smoothies, smart snacks, and sauces. Every dish is crafted with nutrition and flavor in mind." };
+  return row ?? {
+    slogan: "Don't eat less, eat Right.",
+    sloganAr: null,
+    title: "HEALTHY FOOD, DONE RIGHT.",
+    titleAr: null,
+    description: "Dr.Diet is a healthy food restaurant offering fresh salads, energy dishes, sandwiches, breakfasts, toast, juices, smoothies, smart snacks, and sauces. Every dish is crafted with nutrition and flavor in mind.",
+    descriptionAr: null,
+    ctaLabelEn: null,
+    ctaLabelAr: null,
+    updatedAt: new Date(),
+  };
 }
 
 async function getHeroMealsRaw() {
@@ -32,10 +42,13 @@ async function getHeroMealsRaw() {
   return rows.map((r) => ({
     id: r.id,
     title: r.title,
+    titleAr: r.titleAr ?? undefined,
     subtitle: r.subtitle ?? undefined,
+    subtitleAr: r.subtitleAr ?? undefined,
     calories: r.calories ?? undefined,
     protein: r.protein ?? undefined,
     badge: r.badge ?? undefined,
+    badgeAr: r.badgeAr ?? undefined,
     imageUrl: r.imageUrl ?? undefined,
     sortOrder: r.sortOrder,
   }));
@@ -91,16 +104,42 @@ async function getSubscriptionPlansRaw() {
   });
 }
 
-async function getPlansRaw() {
-  return prisma.plan.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-    include: { features: { orderBy: { order: "asc" } } },
-  });
-}
-
 async function getSettingsRaw() {
   return prisma.siteSettings.findUnique({ where: { id: "singleton" } });
+}
+
+async function getMarketRaw() {
+  const categories = await prisma.marketCategory.findMany({
+    where: { isActive: true },
+    orderBy: { order: "asc" },
+    include: {
+      items: {
+        where: { isActive: true },
+        orderBy: { order: "asc" },
+      },
+    },
+  });
+  return categories
+    .filter((c) => c.items.length > 0)
+    .map((c) => ({
+      id: c.id,
+      nameEn: c.nameEn,
+      nameAr: c.nameAr,
+      order: c.order,
+      items: c.items.map((i) => ({
+        id: i.id,
+        nameEn: i.nameEn,
+        nameAr: i.nameAr,
+        descriptionEn: i.descriptionEn ?? undefined,
+        descriptionAr: i.descriptionAr ?? undefined,
+        price: i.price ?? undefined,
+        image: i.image,
+        protein: i.protein ?? undefined,
+        carbs: i.carbs ?? undefined,
+        calories: i.calories ?? undefined,
+        order: i.order,
+      })),
+    }));
 }
 
 export async function getSiteData() {
@@ -114,6 +153,7 @@ export async function getSiteData() {
     testimonials,
     subscriptionPlans,
     settings,
+    market,
   ] = await Promise.all([
     unstable_cache(getHeroContentRaw, ["hero-content"], { tags: [CACHE_TAG] })(),
     unstable_cache(getHeroMealsRaw, ["hero-meals"], { tags: [CACHE_TAG] })(),
@@ -124,30 +164,39 @@ export async function getSiteData() {
     unstable_cache(getTestimonialsRaw, ["testimonials"], { tags: [CACHE_TAG] })(),
     unstable_cache(getSubscriptionPlansRaw, ["subscription-plans"], { tags: [CACHE_TAG] })(),
     unstable_cache(getSettingsRaw, ["settings"], { tags: [CACHE_TAG] })(),
+    unstable_cache(getMarketRaw, ["market"], { tags: [CACHE_TAG] })(),
   ]);
 
-  // Hero: use DB if >= 3, else fallback
-  const formatMacros = (cal: number | undefined, pro: number | undefined) =>
-    [pro != null ? `${pro}g protein` : null, cal != null ? `${cal} cal` : null].filter(Boolean).join(" · ") || "";
+  // Hero: use DB if >= 3, else fallback (bilingual: nameEn/nameAr, subtitleEn/Ar, badgeEn/Ar; macros formatted in component by lang)
   const heroItems =
     heroMeals.length >= 3
       ? heroMeals.map((m) => ({
           id: m.id,
-          name: m.title,
-          subtitle: m.subtitle ?? "",
-          macros: formatMacros(m.calories, m.protein),
-          description: m.subtitle ?? m.title,
+          nameEn: m.title,
+          nameAr: m.titleAr ?? m.title,
+          subtitleEn: m.subtitle ?? undefined,
+          subtitleAr: m.subtitleAr ?? undefined,
+          descriptionEn: m.subtitle ?? m.title,
+          descriptionAr: m.subtitleAr ?? m.titleAr ?? m.title,
+          protein: m.protein ?? undefined,
+          calories: m.calories ?? undefined,
           image: m.imageUrl ?? "/images/hero-california-salad.jpg",
-          badge: m.badge ?? undefined,
+          badgeEn: m.badge ?? undefined,
+          badgeAr: m.badgeAr ?? undefined,
         }))
       : HERO_FALLBACK_MEALS.map((m) => ({
           id: m.id,
-          name: m.title,
-          subtitle: m.subtitle,
-          macros: formatMacros(m.calories, m.protein),
-          description: m.subtitle,
+          nameEn: m.title,
+          nameAr: m.title,
+          subtitleEn: m.subtitle,
+          subtitleAr: undefined,
+          descriptionEn: m.subtitle,
+          descriptionAr: undefined,
+          protein: m.protein,
+          calories: m.calories,
           image: m.imageUrl,
-          badge: m.badge,
+          badgeEn: m.badge,
+          badgeAr: undefined,
         }));
 
   // Map categories to MenuSection shape (bilingual + macros)
@@ -249,12 +298,23 @@ export async function getSiteData() {
     avatarUrl: t.avatarUrl ?? undefined,
   }));
 
+  const heroContentRow = heroContent as { slogan: string; sloganAr?: string | null; title: string; titleAr?: string | null; description: string; descriptionAr?: string | null; ctaLabelEn?: string | null; ctaLabelAr?: string | null };
   return {
-    heroContent: { slogan: heroContent.slogan, title: heroContent.title, description: heroContent.description },
+    heroContent: {
+      slogan: heroContentRow.slogan,
+      sloganAr: heroContentRow.sloganAr ?? undefined,
+      title: heroContentRow.title,
+      titleAr: heroContentRow.titleAr ?? undefined,
+      description: heroContentRow.description,
+      descriptionAr: heroContentRow.descriptionAr ?? undefined,
+      ctaLabelEn: heroContentRow.ctaLabelEn ?? undefined,
+      ctaLabelAr: heroContentRow.ctaLabelAr ?? undefined,
+    },
     heroMeals: heroItems,
     categories: menuCategories,
     plates: platesMapped,
     lovedPlates: lovedPlatesMapped,
+    market,
     videos: videosMapped,
     testimonials: testimonialsMapped,
     plans: plansMapped,
@@ -264,8 +324,25 @@ export async function getSiteData() {
       instagramHandle: null,
       menuPdfUrl: null,
       orderOnBeeorderUrl: null,
+      orderOnMovoUrl: null,
       googleMapsEmbedUrl: null,
       googleMapsLinkUrl: null,
+      mapsEmbedHtml: null,
+      locationText: null,
+      locationEn: null,
+      locationAr: null,
+      lovedPlatesTitleEn: null,
+      lovedPlatesTitleAr: null,
+      lovedPlatesSubtitleEn: null,
+      lovedPlatesSubtitleAr: null,
+      marketTitleEn: null,
+      marketTitleAr: null,
+      marketSubtitleEn: null,
+      marketSubtitleAr: null,
+      videosTitleEn: null,
+      videosTitleAr: null,
+      videosSubtitleEn: null,
+      videosSubtitleAr: null,
       showHero: true,
       showMenu: true,
       showPlates: true,
@@ -289,18 +366,31 @@ export async function getPublicHero() {
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((m) => ({
       id: m.id,
-      name: m.title,
-      subtitle: m.subtitle ?? "",
+      title: m.title,
+      titleAr: m.titleAr ?? null,
+      subtitle: m.subtitle ?? null,
+      subtitleAr: m.subtitleAr ?? null,
       calories: m.calories ?? null,
       protein: m.protein ?? null,
       badge: m.badge ?? null,
+      badgeAr: m.badgeAr ?? null,
       imageUrl: m.imageUrl ?? null,
       sortOrder: m.sortOrder,
     }));
+  const h = heroContent as { slogan: string; sloganAr?: string | null; title: string; titleAr?: string | null; description: string; descriptionAr?: string | null; ctaLabelEn?: string | null; ctaLabelAr?: string | null };
   return {
-    hero: { slogan: heroContent.slogan, title: heroContent.title, description: heroContent.description },
+    hero: {
+      slogan: h.slogan,
+      sloganAr: h.sloganAr ?? null,
+      title: h.title,
+      titleAr: h.titleAr ?? null,
+      description: h.description,
+      descriptionAr: h.descriptionAr ?? null,
+      ctaLabelEn: h.ctaLabelEn ?? null,
+      ctaLabelAr: h.ctaLabelAr ?? null,
+    },
     meals,
-    settings: { orderOnBeeorderUrl: settings?.orderOnBeeorderUrl ?? null, menuPdfUrl: settings?.menuPdfUrl ?? null },
+    settings: { orderOnBeeorderUrl: settings?.orderOnBeeorderUrl ?? null, orderOnMovoUrl: settings?.orderOnMovoUrl ?? null, menuPdfUrl: settings?.menuPdfUrl ?? null, instagramUrl: settings?.instagramUrl ?? null, instagramHandle: settings?.instagramHandle ?? null },
   };
 }
 

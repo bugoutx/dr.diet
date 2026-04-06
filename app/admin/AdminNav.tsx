@@ -4,11 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOutAction } from "./actions";
 
-export default function AdminNav({
-  session,
-}: {
-  session: { user?: { name?: string | null } } | null;
-}) {
+export default function AdminNav() {
   const pathname = usePathname();
   const isLogin = pathname === "/admin/login";
 

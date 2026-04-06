@@ -3,19 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 import { signOutAction } from "./actions";
 
-const ADMIN_LINKS = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/hero", label: "Hero" },
-  { href: "/admin/categories", label: "Categories" },
-  { href: "/admin/meals", label: "Meals" },
-  { href: "/admin/loved-plates", label: "Loved Plates" },
-  { href: "/admin/videos", label: "Videos" },
-  { href: "/admin/testimonials", label: "Testimonials" },
-  { href: "/admin/plans", label: "Plans" },
-  { href: "/admin/settings", label: "Settings" },
-] as const;
+const ADMIN_LINKS: { href: string; labelEn: string; labelAr: string }[] = [
+  { href: "/admin", labelEn: "Dashboard", labelAr: "لوحة التحكم" },
+  { href: "/admin/hero", labelEn: "Hero", labelAr: "الهيرو" },
+  { href: "/admin/categories", labelEn: "Categories", labelAr: "الفئات" },
+  { href: "/admin/meals", labelEn: "Meals", labelAr: "الوجبات" },
+  { href: "/admin/loved-plates", labelEn: "Loved Plates", labelAr: "أطباقنا المفضلة" },
+  { href: "/admin/videos", labelEn: "Videos", labelAr: "الفيديوهات" },
+  { href: "/admin/testimonials", labelEn: "Testimonials", labelAr: "الشهادات" },
+  { href: "/admin/plans", labelEn: "Plans", labelAr: "الخطط" },
+  { href: "/admin/settings", labelEn: "Settings", labelAr: "الإعدادات" },
+];
 
 export default function AdminNavbar() {
   const pathname = usePathname();
@@ -34,7 +35,7 @@ export default function AdminNavbar() {
           Dr.Diet Admin
         </Link>
         <nav className="flex items-center gap-1 overflow-x-auto">
-          {ADMIN_LINKS.map(({ href, label }) => {
+          {ADMIN_LINKS.map(({ href, labelEn, labelAr }) => {
             const isActive =
               href === "/admin"
                 ? pathname === "/admin"
@@ -49,7 +50,7 @@ export default function AdminNavbar() {
                     : "text-slate-600 hover:bg-slate-100 hover:text-drd-text"
                 }`}
               >
-                {label}
+                {tField(lang, labelEn, labelAr)}
               </Link>
             );
           })}
@@ -84,14 +85,14 @@ export default function AdminNavbar() {
               rel="noopener noreferrer"
               className="rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-drd-primary"
             >
-              View Site
+              {tField(lang, "View Site", "عرض الموقع")}
             </Link>
             <form action={signOutAction} className="inline">
               <button
                 type="submit"
                 className="rounded-md px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 hover:text-drd-accent"
               >
-                Sign out
+                {tField(lang, "Sign out", "تسجيل الخروج")}
               </button>
             </form>
           </div>

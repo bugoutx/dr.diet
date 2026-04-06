@@ -5,6 +5,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import LoadingButton from "@/components/admin/LoadingButton";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
 type Category = {
   id: string;
@@ -17,6 +19,7 @@ type Category = {
 };
 
 export default function AdminCategoriesPage() {
+  const { lang } = useLang();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [newNameEn, setNewNameEn] = useState("");
@@ -41,7 +44,7 @@ export default function AdminCategoriesPage() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!newNameEn.trim() || !newNameAr.trim()) {
-      toast.error("Name (English) and Name (Arabic) are required.");
+      toast.error(tField(lang, "Name (English) and Name (Arabic) are required.", "الاسم (إنجليزي) و (عربي) مطلوبان."));
       return;
     }
     setCreating(true);
@@ -63,36 +66,36 @@ export default function AdminCategoriesPage() {
       setNewDescEn("");
       setNewDescAr("");
       load();
-      toast.success("Category added");
+      toast.success(tField(lang, "Category added", "تمت إضافة الفئة"));
     } catch {
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setCreating(false);
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this category? All meals in it will be deleted.")) return;
+    if (!confirm(tField(lang, "Delete this category? All meals in it will be deleted.", "حذف هذه الفئة؟ سيتم حذف جميع الوجبات فيها."))) return;
     setDeletingId(id);
     try {
       const res = await fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       load();
-      toast.success("Deleted");
+      toast.success(tField(lang, "Deleted", "تم الحذف"));
     } catch {
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setDeletingId(null);
     }
   }
 
-  if (loading) return <div className="text-drd-muted">Loading...</div>;
+  if (loading) return <div className="text-drd-muted">{tField(lang, "Loading...", "جاري التحميل...")}</div>;
 
   return (
     <div>
       <AdminPageHeader
-        title="Categories"
-        backLabel="Dashboard"
+        title={tField(lang, "Categories", "الفئات")}
+        backLabel={tField(lang, "Dashboard", "لوحة التحكم")}
         backHref="/admin"
         showBack={false}
       />
@@ -102,7 +105,7 @@ export default function AdminCategoriesPage() {
           type="text"
           value={newNameEn}
           onChange={(e) => setNewNameEn(e.target.value)}
-          placeholder="Name (English) *"
+          placeholder={tField(lang, "Name (English) *", "الاسم (إنجليزي) *")}
           className="rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
         />
         <input
@@ -117,7 +120,7 @@ export default function AdminCategoriesPage() {
           type="text"
           value={newDescEn}
           onChange={(e) => setNewDescEn(e.target.value)}
-          placeholder="Description (English)"
+          placeholder={tField(lang, "Description (English)", "الوصف (إنجليزي)")}
           className="rounded-lg border border-slate-200 px-4 py-2 text-drd-text min-w-[200px]"
         />
         <input
@@ -131,10 +134,10 @@ export default function AdminCategoriesPage() {
         <LoadingButton
           type="submit"
           loading={creating}
-          loadingLabel="Adding…"
+          loadingLabel={tField(lang, "Adding…", "جاري الإضافة…")}
           className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark"
         >
-          Add Category
+          {tField(lang, "Add Category", "إضافة فئة")}
         </LoadingButton>
       </form>
 
@@ -150,14 +153,14 @@ export default function AdminCategoriesPage() {
               {(cat.descriptionEn || cat.descriptionAr) && (
                 <p className="text-sm text-drd-muted">{cat.descriptionEn || cat.descriptionAr}</p>
               )}
-              <span className="text-xs text-drd-muted">{cat.meals.length} meals</span>
+              <span className="text-xs text-drd-muted">{cat.meals.length} {tField(lang, "meals", "وجبات")}</span>
             </div>
             <div className="flex items-center gap-2">
               <Link
                 href={`/admin/categories/${cat.id}`}
                 className="rounded-lg border border-drd-primary px-4 py-2 text-sm font-medium text-drd-primary hover:bg-drd-primary/10"
               >
-                Edit
+                {tField(lang, "Edit", "تعديل")}
               </Link>
               <button
                 type="button"
@@ -165,7 +168,7 @@ export default function AdminCategoriesPage() {
                 disabled={deletingId === cat.id}
                 className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
               >
-                {deletingId === cat.id ? "Deleting…" : "Delete"}
+                {deletingId === cat.id ? tField(lang, "Deleting…", "جاري الحذف…") : tField(lang, "Delete", "حذف")}
               </button>
             </div>
           </div>

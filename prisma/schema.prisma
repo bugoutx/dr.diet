@@ -1,6 +1,9 @@
 // Dr.Diet - Prisma Schema
 // Database: PostgreSQL (Neon or Supabase)
 // Run: npx prisma generate && npx prisma migrate dev
+//
+// Supabase: if pooler fails locally, use "Direct connection" from the dashboard
+// (db.<ref>.supabase.co:5432). See .env.example and README-SETUP.md.
 
 generator client {
   provider = "prisma-client-js"
@@ -33,13 +36,36 @@ model SiteSettings {
   // Menu PDF
   menuPdfUrl     String?
   
-  // Order link (e.g. Beeorder)
+  // Order links
   orderOnBeeorderUrl String?
+  orderOnMovoUrl     String?
   
   // Location
-  googleMapsEmbedUrl String?
+  googleMapsEmbedUrl String?  // legacy: plain embed URL
   googleMapsLinkUrl  String?
+  mapsEmbedHtml      String?  // full iframe HTML from Google (Share → Embed)
+  locationText       String?  // legacy: single location line
+  locationEn         String?  // Find us location (English)
+  locationAr         String?  // Find us location (Arabic)
   
+  // Our Most Loved Plates section (bilingual title + subtitle)
+  lovedPlatesTitleEn    String?
+  lovedPlatesTitleAr   String?
+  lovedPlatesSubtitleEn String?  @db.Text
+  lovedPlatesSubtitleAr String?  @db.Text
+
+  // Dr.Diet Market section (bilingual title + subtitle)
+  marketTitleEn    String?
+  marketTitleAr   String?
+  marketSubtitleEn String?  @db.Text
+  marketSubtitleAr String?  @db.Text
+
+  // Videos / Reels section (bilingual title + subtitle)
+  videosTitleEn    String?
+  videosTitleAr   String?
+  videosSubtitleEn String?  @db.Text
+  videosSubtitleAr String?  @db.Text
+
   // Section visibility toggles
   showHero        Boolean @default(true)
   showMenu        Boolean @default(true)
@@ -104,23 +130,31 @@ model MealTag {
 }
 
 // ============ HERO (Exactly 3 meals, CMS-driven) ============
-// Single row for hero headline/description
+// Single row for hero headline/description (bilingual)
 model HeroContent {
-  id          String   @id @default("singleton")
-  slogan      String   @default("")
-  title       String   @default("")
-  description String   @db.Text
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default("singleton")
+  slogan        String   @default("")  // EN
+  sloganAr      String?  // AR
+  title         String   @default("")  // EN
+  titleAr       String?  // AR
+  description   String   @db.Text      // EN
+  descriptionAr String?  @db.Text      // AR
+  ctaLabelEn    String?  // e.g. "Order Now"
+  ctaLabelAr    String?  // e.g. "اطلب الآن"
+  updatedAt     DateTime @updatedAt
 }
 
-// Fallback: if DB has < 3 active HeroMeals, use static seed in public/images
+// Fallback: if DB has < 3 active HeroMeals, use static seed in public/images (bilingual)
 model HeroMeal {
   id        String   @id @default(cuid())
-  title     String   // display name
-  subtitle  String?
-  calories  Int?     // calories count
-  protein   Int?     // grams
-  badge     String?  // e.g. "Rotating signature meal"
+  title     String   // display name EN
+  titleAr   String?  // AR
+  subtitle  String?  // EN e.g. "Energy Dish"
+  subtitleAr String? // AR
+  calories  Int?
+  protein   Int?
+  badge     String?  // EN e.g. "Rotating signature meal"
+  badgeAr   String?  // AR
   imageUrl  String?
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
@@ -270,4 +304,46 @@ model PlanFeature {
   order    Int     @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ============ DR.DIET MARKET ============
+model MarketCategory {
+  id        String   @id @default(cuid())
+  nameEn    String
+  nameAr    String
+  slug      String?  @unique
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items MarketItem[]
+
+  @@index([isActive])
+}
+
+model MarketItem {
+  id             String   @id @default(cuid())
+  categoryId     String
+  category       MarketCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  nameEn         String
+  nameAr         String
+  descriptionEn String?  @db.Text
+  descriptionAr String?  @db.Text
+
+  price    Int?    // SYP, integer
+  image    String  // blob url, required
+
+  protein  Int?
+  carbs    Int?
+  calories Int?
+
+  order    Int      @default(0)
+  isActive Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId, order])
+  @@index([isActive])
 }

@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import LoadingButton from "@/components/admin/LoadingButton";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
 type MealTagShape = { id?: string; labelEn: string; labelAr: string; tone: "green" | "orange" };
 
@@ -29,6 +30,7 @@ type Meal = {
 type Category = { id: string; nameEn: string };
 
 export default function AdminMealEditPage() {
+  const { lang } = useLang();
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -76,15 +78,15 @@ export default function AdminMealEditPage() {
       if (res.ok && data.url) {
         setMeal({ ...meal, imageUrl: data.url });
         setUploadError("");
-        toast.success("Upload complete");
+        toast.success(tField(lang, "Upload complete", "تم الرفع"));
       } else {
-        const msg = data?.error ?? "Upload failed";
+        const msg = data?.error ?? tField(lang, "Upload failed", "فشل الرفع");
         setUploadError(msg);
         toast.error(msg);
       }
     } catch {
-      setUploadError("Upload failed");
-      toast.error("Upload failed");
+      setUploadError(tField(lang, "Upload failed", "فشل الرفع"));
+      toast.error(tField(lang, "Upload failed", "فشل الرفع"));
     } finally {
       setUploading(false);
     }
@@ -114,23 +116,23 @@ export default function AdminMealEditPage() {
         }),
       });
       if (res.ok) {
-        toast.success("Updated");
+        toast.success(tField(lang, "Updated", "تم التحديث"));
         router.push("/admin/meals");
       } else throw new Error("Failed to update");
     } catch {
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading || !meal) return <div className="text-drd-muted">Loading...</div>;
+  if (loading || !meal) return <div className="text-drd-muted">{tField(lang, "Loading...", "جاري التحميل...")}</div>;
 
   return (
     <div>
       <AdminPageHeader
-        title="Edit Meal"
-        backLabel="Meals"
+        title={tField(lang, "Edit Meal", "تعديل الوجبة")}
+        backLabel={tField(lang, "Meals", "الوجبات")}
         backHref="/admin/meals"
       />
       <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
@@ -284,7 +286,7 @@ export default function AdminMealEditPage() {
                 }}
                 className="rounded-lg bg-drd-primary/20 text-drd-primary px-3 py-1.5 text-sm font-medium hover:bg-drd-primary/30"
               >
-                Add tag
+                {tField(lang, "Add tag", "إضافة تسمية")}
               </button>
             </div>
           </div>
@@ -318,9 +320,9 @@ export default function AdminMealEditPage() {
             disabled={uploading}
             className="rounded-lg border-2 border-drd-primary bg-white text-drd-primary px-4 py-2 font-semibold hover:bg-drd-primary/5 disabled:opacity-50"
           >
-            {uploading ? "Uploading..." : meal.imageUrl ? "Change Image" : "Upload Image"}
+            {uploading ? tField(lang, "Uploading...", "جاري الرفع...") : meal.imageUrl ? tField(lang, "Change Image", "استبدال الصورة") : tField(lang, "Upload Image", "رفع صورة")}
           </button>
-          {uploading && <span className="ml-2 text-sm text-drd-muted">Uploading...</span>}
+          {uploading && <span className="ml-2 text-sm text-drd-muted">{tField(lang, "Uploading...", "جاري الرفع...")}</span>}
           {uploadError && <p className="mt-1 text-sm text-red-600">{uploadError}</p>}
           {meal.imageUrl && <p className="mt-1 text-xs text-drd-muted truncate max-w-md">{meal.imageUrl}</p>}
         </div>
@@ -337,9 +339,10 @@ export default function AdminMealEditPage() {
           type="submit"
           loading={saving}
           disabled={uploading}
+          loadingLabel={tField(lang, "Saving…", "جاري الحفظ…")}
           className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-70"
         >
-          Save
+          {tField(lang, "Save", "حفظ")}
         </LoadingButton>
       </form>
     </div>

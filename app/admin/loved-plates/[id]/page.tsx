@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -297,7 +296,22 @@ export default function AdminLovedPlateEditPage() {
                 type="button"
                 onClick={() => {
                   if (!newTag.labelEn.trim() || !newTag.labelAr.trim()) return;
-                  setPlate({ ...plate, tags: [...plate.tags, { ...newTag }] });
+                  const tempId =
+                    typeof crypto !== "undefined" && "randomUUID" in crypto
+                      ? crypto.randomUUID()
+                      : `temp-${Date.now()}`;
+                  setPlate({
+                    ...plate,
+                    tags: [
+                      ...plate.tags,
+                      {
+                        id: tempId,
+                        labelEn: newTag.labelEn.trim(),
+                        labelAr: newTag.labelAr.trim(),
+                        tone: newTag.tone,
+                      },
+                    ],
+                  });
                   setNewTag({ labelEn: "", labelAr: "", tone: "green" });
                 }}
                 className="rounded-lg bg-drd-primary/20 text-drd-primary px-3 py-1.5 text-sm font-medium hover:bg-drd-primary/30"

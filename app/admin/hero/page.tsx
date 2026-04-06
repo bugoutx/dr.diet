@@ -6,50 +6,66 @@ import { toast } from "sonner";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import LoadingButton from "@/components/admin/LoadingButton";
 import InlineLoader from "@/components/admin/InlineLoader";
+import { useLang } from "@/lib/LangContext";
+import { tField } from "@/lib/tField";
 
 type HeroData = {
-  hero: { slogan: string; title: string; description: string };
+  hero: {
+    slogan: string;
+    sloganAr?: string | null;
+    title: string;
+    titleAr?: string | null;
+    description: string;
+    descriptionAr?: string | null;
+    ctaLabelEn?: string | null;
+    ctaLabelAr?: string | null;
+  };
   meals: Array<{
     id: string;
-    name: string;
-    subtitle: string;
+    title: string;
+    titleAr?: string | null;
+    subtitle: string | null;
+    subtitleAr?: string | null;
     calories: number | null;
     protein: number | null;
     badge: string | null;
+    badgeAr?: string | null;
     imageUrl: string | null;
     sortOrder: number;
   }>;
 };
 
-type HeroMealRow = {
-  id: string;
-  title: string;
-  subtitle: string | null;
-  calories: number | null;
-  protein: number | null;
-  badge: string | null;
-  imageUrl: string | null;
-  sortOrder: number;
-};
-
 const MAX_MEALS = 3;
 
 export default function AdminHeroPage() {
+  const { lang } = useLang();
   const [data, setData] = useState<HeroData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [heroForm, setHeroForm] = useState({ slogan: "", title: "", description: "" });
+  const [heroForm, setHeroForm] = useState({
+    slogan: "",
+    sloganAr: "",
+    title: "",
+    titleAr: "",
+    description: "",
+    descriptionAr: "",
+    ctaLabelEn: "",
+    ctaLabelAr: "",
+  });
   const [savingHero, setSavingHero] = useState(false);
   const [reorderPending, setReorderPending] = useState(false);
   const [savingMealEdit, setSavingMealEdit] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
     title: string;
+    titleAr: string;
     subtitle: string;
+    subtitleAr: string;
     calories: string;
     protein: string;
     badge: string;
+    badgeAr: string;
     imageUrl: string;
-  }>({ title: "", subtitle: "", calories: "", protein: "", badge: "", imageUrl: "" });
+  }>({ title: "", titleAr: "", subtitle: "", subtitleAr: "", calories: "", protein: "", badge: "", badgeAr: "", imageUrl: "" });
   const [uploading, setUploading] = useState(false);
 
   function load() {
@@ -60,8 +76,13 @@ export default function AdminHeroPage() {
         setData(res);
         setHeroForm({
           slogan: res.hero?.slogan ?? "",
+          sloganAr: res.hero?.sloganAr ?? "",
           title: res.hero?.title ?? "",
+          titleAr: res.hero?.titleAr ?? "",
           description: res.hero?.description ?? "",
+          descriptionAr: res.hero?.descriptionAr ?? "",
+          ctaLabelEn: res.hero?.ctaLabelEn ?? "",
+          ctaLabelAr: res.hero?.ctaLabelAr ?? "",
         });
       })
       .catch(console.error)
@@ -80,13 +101,22 @@ export default function AdminHeroPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(heroForm),
+        body: JSON.stringify({
+          slogan: heroForm.slogan || undefined,
+          sloganAr: heroForm.sloganAr || undefined,
+          title: heroForm.title || undefined,
+          titleAr: heroForm.titleAr || undefined,
+          description: heroForm.description || undefined,
+          descriptionAr: heroForm.descriptionAr || undefined,
+          ctaLabelEn: heroForm.ctaLabelEn || undefined,
+          ctaLabelAr: heroForm.ctaLabelAr || undefined,
+        }),
       });
       if (!res.ok) throw new Error("Failed to save");
-      toast.success("Saved");
+      toast.success(tField(lang, "Saved", "تم الحفظ"));
       load();
     } catch {
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setSavingHero(false);
     }
@@ -101,10 +131,13 @@ export default function AdminHeroPage() {
         credentials: "include",
         body: JSON.stringify({
           title: "New Hero Meal",
+          titleAr: "",
           subtitle: "",
+          subtitleAr: "",
           calories: null,
           protein: null,
           badge: "Rotating signature meal",
+          badgeAr: "طبق مميز",
           imageUrl: null,
         }),
       });
@@ -112,21 +145,24 @@ export default function AdminHeroPage() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error ?? "Failed to create");
       }
-      toast.success("Meal added");
+      toast.success(tField(lang, "Meal added", "تمت إضافة الوجبة"));
       load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+      toast.error(e instanceof Error ? e.message : tField(lang, "Something went wrong", "حدث خطأ ما"));
     }
   }
 
-  function startEdit(meal: { id: string; name: string; subtitle: string; calories: number | null; protein: number | null; badge: string | null; imageUrl: string | null }) {
+  function startEdit(meal: { id: string; title: string; titleAr?: string | null; subtitle: string | null; subtitleAr?: string | null; calories: number | null; protein: number | null; badge: string | null; badgeAr?: string | null; imageUrl: string | null }) {
     setEditingId(meal.id);
     setEditForm({
-      title: meal.name,
+      title: meal.title ?? "",
+      titleAr: meal.titleAr ?? "",
       subtitle: meal.subtitle ?? "",
+      subtitleAr: meal.subtitleAr ?? "",
       calories: meal.calories != null ? String(meal.calories) : "",
       protein: meal.protein != null ? String(meal.protein) : "",
       badge: meal.badge ?? "",
+      badgeAr: meal.badgeAr ?? "",
       imageUrl: meal.imageUrl ?? "",
     });
   }
@@ -142,10 +178,13 @@ export default function AdminHeroPage() {
         credentials: "include",
         body: JSON.stringify({
           title: editForm.title.trim() || "Untitled",
+          titleAr: editForm.titleAr.trim() || null,
           subtitle: editForm.subtitle.trim() || null,
+          subtitleAr: editForm.subtitleAr.trim() || null,
           calories: editForm.calories.trim() ? parseInt(editForm.calories, 10) : null,
           protein: editForm.protein.trim() ? parseInt(editForm.protein, 10) : null,
           badge: editForm.badge.trim() || null,
+          badgeAr: editForm.badgeAr.trim() || null,
           imageUrl: editForm.imageUrl.trim() || null,
         }),
       });
@@ -161,18 +200,18 @@ export default function AdminHeroPage() {
   }
 
   async function deleteMeal(id: string) {
-    if (!confirm("Delete this hero meal?")) return;
+    if (!confirm(tField(lang, "Delete this hero meal?", "حذف وجبة الهيرو؟"))) return;
     try {
       const res = await fetch(`/api/admin/hero/meals/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete");
-      toast.success("Deleted");
+      toast.success(tField(lang, "Deleted", "تم الحذف"));
       if (editingId === id) setEditingId(null);
       load();
     } catch {
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     }
   }
 
@@ -193,10 +232,10 @@ export default function AdminHeroPage() {
         body: JSON.stringify({ ids }),
       });
       if (!res.ok) throw new Error("Failed to reorder");
-      toast.success("Order updated");
+      toast.success(tField(lang, "Order updated", "تم تحديث الترتيب"));
     } catch {
       load();
-      toast.error("Something went wrong");
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
       setReorderPending(false);
     }
@@ -217,85 +256,147 @@ export default function AdminHeroPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(json?.error ?? res.statusText ?? "Upload failed");
+        toast.error(json?.error ?? res.statusText ?? tField(lang, "Upload failed", "فشل الرفع"));
         return;
       }
       const url = json?.url ?? json?.downloadUrl;
       if (url) {
         setEditForm((f) => ({ ...f, imageUrl: url }));
-        toast.success("Upload complete");
-      } else toast.error("Upload failed");
+        toast.success(tField(lang, "Upload complete", "تم الرفع"));
+      } else toast.error(tField(lang, "Upload failed", "فشل الرفع"));
     } catch {
-      toast.error("Upload failed");
+      toast.error(tField(lang, "Upload failed", "فشل الرفع"));
     } finally {
       setUploading(false);
     }
   }
 
   if (loading || !data) {
-    return <div className="text-drd-muted">Loading...</div>;
+    return <div className="text-drd-muted">{tField(lang, "Loading...", "جاري التحميل...")}</div>;
   }
 
   return (
     <div>
       <AdminPageHeader
-        title="Hero Section"
-        backLabel="Dashboard"
+        title={tField(lang, "Hero Section", "قسم الهيرو")}
+        backLabel={tField(lang, "Dashboard", "لوحة التحكم")}
         backHref="/admin"
       />
 
       <section className="mb-10">
-        <h2 className="text-lg font-semibold text-drd-text mb-4">Hero copy</h2>
+        <h2 className="text-lg font-semibold text-drd-text mb-4">{tField(lang, "Hero copy (EN / AR)", "نص الهيرو (إنجليزي / عربي)")}</h2>
         <form onSubmit={saveHero} className="max-w-2xl space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-drd-text mb-1">Slogan</label>
-            <input
-              type="text"
-              value={heroForm.slogan}
-              onChange={(e) => setHeroForm({ ...heroForm, slogan: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
-              placeholder="Don't eat less, eat Right."
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">Slogan (EN)</label>
+              <input
+                type="text"
+                value={heroForm.slogan}
+                onChange={(e) => setHeroForm({ ...heroForm, slogan: e.target.value })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                placeholder="Don't eat less, eat Right."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">Slogan (AR)</label>
+              <input
+                type="text"
+                value={heroForm.sloganAr}
+                onChange={(e) => setHeroForm({ ...heroForm, sloganAr: e.target.value })}
+                dir="rtl"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-right"
+                placeholder="لا تأكل أقل، كل صح."
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-drd-text mb-1">Title</label>
-            <input
-              type="text"
-              value={heroForm.title}
-              onChange={(e) => setHeroForm({ ...heroForm, title: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
-              placeholder="HEALTHY FOOD, DONE RIGHT."
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">Title (EN)</label>
+              <input
+                type="text"
+                value={heroForm.title}
+                onChange={(e) => setHeroForm({ ...heroForm, title: e.target.value })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                placeholder="HEALTHY FOOD, DONE RIGHT."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">Title (AR)</label>
+              <input
+                type="text"
+                value={heroForm.titleAr}
+                onChange={(e) => setHeroForm({ ...heroForm, titleAr: e.target.value })}
+                dir="rtl"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-right"
+                placeholder="طعام صحي، بشكل صحيح."
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-drd-text mb-1">Description</label>
-            <textarea
-              value={heroForm.description}
-              onChange={(e) => setHeroForm({ ...heroForm, description: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
-              rows={4}
-              placeholder="Dr.Diet is a healthy food restaurant..."
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">Description (EN)</label>
+              <textarea
+                value={heroForm.description}
+                onChange={(e) => setHeroForm({ ...heroForm, description: e.target.value })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                rows={4}
+                placeholder="Dr.Diet is a healthy food restaurant..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">Description (AR)</label>
+              <textarea
+                value={heroForm.descriptionAr}
+                onChange={(e) => setHeroForm({ ...heroForm, descriptionAr: e.target.value })}
+                dir="rtl"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-right"
+                rows={4}
+                placeholder="د.دايت مطعم طعام صحي..."
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">CTA button (EN)</label>
+              <input
+                type="text"
+                value={heroForm.ctaLabelEn}
+                onChange={(e) => setHeroForm({ ...heroForm, ctaLabelEn: e.target.value })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                placeholder="Order Now"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">CTA button (AR)</label>
+              <input
+                type="text"
+                value={heroForm.ctaLabelAr}
+                onChange={(e) => setHeroForm({ ...heroForm, ctaLabelAr: e.target.value })}
+                dir="rtl"
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-right"
+                placeholder="اطلب الآن"
+              />
+            </div>
           </div>
           <LoadingButton
             type="submit"
             loading={savingHero}
-            loadingLabel="Saving…"
+            loadingLabel={tField(lang, "Saving…", "جاري الحفظ…")}
             className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-70"
           >
-            Save hero copy
+            {tField(lang, "Save hero copy", "حفظ نص الهيرو")}
           </LoadingButton>
         </form>
       </section>
 
       <section>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <h2 className="text-lg font-semibold text-drd-text">Hero meals (max {MAX_MEALS})</h2>
-          {reorderPending && <InlineLoader label="Saving order…" />}
+          <h2 className="text-lg font-semibold text-drd-text">{tField(lang, "Hero meals (max 3)", "وجبات الهيرو (حد أقصى 3)")}</h2>
+          {reorderPending && <InlineLoader label={tField(lang, "Saving order…", "جاري حفظ الترتيب…")} />}
         </div>
         <p className="text-sm text-drd-muted mb-4">
-          These appear in the hero carousel. Set &quot;Order on Beeorder&quot; URL in{" "}
-          <Link href="/admin/settings" className="text-drd-primary hover:underline">Settings</Link> for the Order Now button.
+          {tField(lang, "These appear in the hero carousel. Set \"Order on Beeorder\" URL in Settings for the Order Now button.", "تظهر في سلسلة الهيرو. اضبط رابط \"بي أوردر\" في الإعدادات لزر اطلب الآن.")}{" "}
+          <Link href="/admin/settings" className="text-drd-primary hover:underline">{tField(lang, "Settings", "الإعدادات")}</Link>.
         </p>
 
         <div className="space-y-4 max-w-2xl">
@@ -311,7 +412,7 @@ export default function AdminHeroPage() {
                     onClick={() => reorder(true, index)}
                     disabled={reorderPending || index === 0}
                     className="text-drd-muted hover:text-drd-primary disabled:opacity-40 p-0.5"
-                    aria-label="Move up"
+                    aria-label={tField(lang, "Move up", "تحريك لأعلى")}
                   >
                     ▲
                   </button>
@@ -320,14 +421,14 @@ export default function AdminHeroPage() {
                     onClick={() => reorder(false, index)}
                     disabled={reorderPending || index === data.meals.length - 1}
                     className="text-drd-muted hover:text-drd-primary disabled:opacity-40 p-0.5"
-                    aria-label="Move down"
+                    aria-label={tField(lang, "Move down", "تحريك لأسفل")}
                   >
                     ▼
                   </button>
                 </div>
                 <div className="min-w-0">
-                  <p className="font-medium text-drd-text truncate">{meal.name}</p>
-                  <p className="text-sm text-drd-muted truncate">{meal.subtitle || "—"}</p>
+                  <p className="font-medium text-drd-text truncate">{meal.title}</p>
+                  <p className="text-sm text-drd-muted truncate">{meal.subtitle || meal.subtitleAr || "—"}</p>
                   {(meal.calories != null || meal.protein != null) && (
                     <p className="text-xs text-drd-muted">
                       {[meal.protein != null && `${meal.protein}g protein`, meal.calories != null && `${meal.calories} cal`].filter(Boolean).join(" · ")}
@@ -341,14 +442,14 @@ export default function AdminHeroPage() {
                   onClick={() => startEdit(meal)}
                   className="text-sm text-drd-primary hover:underline"
                 >
-                  Edit
+                  {tField(lang, "Edit", "تعديل")}
                 </button>
                 <button
                   type="button"
                   onClick={() => deleteMeal(meal.id)}
                   className="text-sm text-red-600 hover:underline"
                 >
-                  Delete
+                  {tField(lang, "Delete", "حذف")}
                 </button>
               </div>
             </div>
@@ -361,34 +462,60 @@ export default function AdminHeroPage() {
           disabled={data.meals.length >= MAX_MEALS}
           className="mt-4 rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {data.meals.length >= MAX_MEALS ? `Already ${MAX_MEALS} meals` : "Add hero meal"}
+          {data.meals.length >= MAX_MEALS ? tField(lang, "Already 3 meals", "3 وجبات بالفعل") : tField(lang, "Add hero meal", "إضافة وجبة هيرو")}
         </button>
       </section>
 
       {editingId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
-            <h3 className="text-lg font-semibold text-drd-text mb-4">Edit hero meal</h3>
+            <h3 className="text-lg font-semibold text-drd-text mb-4">{tField(lang, "Edit hero meal", "تعديل وجبة الهيرو")}</h3>
             <form onSubmit={saveMealEdit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-drd-text mb-1">Name *</label>
-                <input
-                  type="text"
-                  value={editForm.title}
-                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-drd-text mb-1">Name (EN) *</label>
+                  <input
+                    type="text"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-drd-text mb-1">Name (AR)</label>
+                  <input
+                    type="text"
+                    value={editForm.titleAr}
+                    onChange={(e) => setEditForm({ ...editForm, titleAr: e.target.value })}
+                    dir="rtl"
+                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-right"
+                    placeholder="الاسم بالعربية"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-drd-text mb-1">Subtitle</label>
-                <input
-                  type="text"
-                  value={editForm.subtitle}
-                  onChange={(e) => setEditForm({ ...editForm, subtitle: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
-                  placeholder="e.g. Grilled chicken with sautéed vegetables…"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-drd-text mb-1">Subtitle (EN)</label>
+                  <input
+                    type="text"
+                    value={editForm.subtitle}
+                    onChange={(e) => setEditForm({ ...editForm, subtitle: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                    placeholder="e.g. Energy Dish"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-drd-text mb-1">Subtitle (AR)</label>
+                  <input
+                    type="text"
+                    value={editForm.subtitleAr}
+                    onChange={(e) => setEditForm({ ...editForm, subtitleAr: e.target.value })}
+                    dir="rtl"
+                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-right"
+                    placeholder="نوع الطبق"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -412,15 +539,28 @@ export default function AdminHeroPage() {
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-drd-text mb-1">Badge</label>
-                <input
-                  type="text"
-                  value={editForm.badge}
-                  onChange={(e) => setEditForm({ ...editForm, badge: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
-                  placeholder="e.g. Rotating signature meal"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-drd-text mb-1">Badge (EN)</label>
+                  <input
+                    type="text"
+                    value={editForm.badge}
+                    onChange={(e) => setEditForm({ ...editForm, badge: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                    placeholder="e.g. Rotating signature meal"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-drd-text mb-1">Badge (AR)</label>
+                  <input
+                    type="text"
+                    value={editForm.badgeAr}
+                    onChange={(e) => setEditForm({ ...editForm, badgeAr: e.target.value })}
+                    dir="rtl"
+                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-right"
+                    placeholder="طبق مميز"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-drd-text mb-1">Image</label>
@@ -438,22 +578,23 @@ export default function AdminHeroPage() {
                   placeholder="Paste image URL or upload above"
                   className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text text-sm"
                 />
-                {uploading && <p className="text-xs text-drd-muted">Uploading...</p>}
+                {uploading && <p className="text-xs text-drd-muted">{tField(lang, "Uploading...", "جاري الرفع...")}</p>}
               </div>
               <div className="flex gap-2 pt-2">
                 <LoadingButton
                   type="submit"
                   loading={savingMealEdit}
+                  loadingLabel={tField(lang, "Saving…", "جاري الحفظ…")}
                   className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark"
                 >
-                  Save
+                  {tField(lang, "Save", "حفظ")}
                 </LoadingButton>
                 <button
                   type="button"
                   onClick={() => setEditingId(null)}
                   className="rounded-full border border-slate-200 px-6 py-2 text-drd-text hover:bg-slate-50"
                 >
-                  Cancel
+                  {tField(lang, "Cancel", "إلغاء")}
                 </button>
               </div>
             </form>

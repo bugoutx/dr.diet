@@ -4,7 +4,7 @@
  */
 export type Lang = "en" | "ar";
 
-export function formatNumber(n: number | string | null | undefined, _lang: Lang = "en"): string {
+export function formatNumber(n: number | string | null | undefined): string {
   if (n === null || n === undefined) return "";
   if (typeof n === "string") {
     const stripped = n.replace(/,/g, "").trim();
@@ -16,4 +16,15 @@ export function formatNumber(n: number | string | null | undefined, _lang: Lang 
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(n);
+}
+
+/**
+ * Format price with currency label by language.
+ * EN: "30,000 SYP" | AR: "30,000 ل.س"
+ * Returns empty string if amount is null/undefined.
+ */
+export function formatPrice(amount: number | string | null | undefined, lang: Lang): string {
+  const formatted = formatNumber(amount);
+  if (!formatted) return "";
+  return `${formatted} ${lang === "ar" ? "ل.س" : "SYP"}`;
 }

@@ -1,10 +1,23 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 export type Lang = "en" | "ar";
 
 const STORAGE_KEY = "drdiet_lang";
+
+const langListeners = new Set<() => void>();
+
+function emitLang() {
+  langListeners.forEach((l) => l());
+}
 
 function getStoredLang(): Lang {
   if (typeof window === "undefined") return "en";
@@ -16,32 +29,39 @@ function getStoredLang(): Lang {
   return "en";
 }
 
+function subscribeLang(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  langListeners.add(onStoreChange);
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === STORAGE_KEY || e.key === null) onStoreChange();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    langListeners.delete(onStoreChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function getLangSnapshot(): Lang {
+  if (typeof window === "undefined") return "en";
+  return getStoredLang();
+}
+
 const LangContext = createContext<{
   lang: Lang;
   setLang: (lang: Lang) => void;
 } | null>(null);
 
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("en");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    const next = getStoredLang();
-    setLangState(next);
-  }, [mounted]);
+  const lang = useSyncExternalStore(subscribeLang, getLangSnapshot, () => "en" as Lang);
 
   const setLang = useCallback((next: Lang) => {
-    setLangState(next);
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEY, next);
     const url = new URL(window.location.href);
     url.searchParams.set("lang", next);
     window.history.replaceState({}, "", url.pathname + url.search);
+    emitLang();
   }, []);
 
   useEffect(() => {
@@ -50,11 +70,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
   }, [lang]);
 
-  return (
-    <LangContext.Provider value={{ lang, setLang }}>
-      {children}
-    </LangContext.Provider>
-  );
+  return <LangContext.Provider value={{ lang, setLang }}>{children}</LangContext.Provider>;
 }
 
 export function useLang() {
