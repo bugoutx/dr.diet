@@ -10,6 +10,9 @@ import PlanSubscriptionsSection from "@/components/PlanSubscriptionsSection";
 import LocationContactSection from "@/components/LocationContactSection";
 import FooterSection from "@/components/FooterSection";
 
+/** Landing page aggregates CMS data via Prisma; render at request time so builds do not require DB. */
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const data = await getSiteData();
   const { settings } = data;
@@ -58,7 +61,17 @@ export default async function Home() {
           }}
         />
       )}
-      {settings.showTestimonials && <TestimonialsSection testimonials={data.testimonials} />}
+      {settings.showTestimonials && (
+        <TestimonialsSection
+          testimonials={data.testimonials}
+          sectionTitle={{
+            titleEn: settings.testimonialsTitleEn,
+            titleAr: settings.testimonialsTitleAr,
+            subtitleEn: settings.testimonialsSubtitleEn,
+            subtitleAr: settings.testimonialsSubtitleAr,
+          }}
+        />
+      )}
       {settings.showPlans && <PlanSubscriptionsSection plans={data.plans} />}
       {settings.showContact && <LocationContactSection settings={settings} />}
       <FooterSection settings={settings} />

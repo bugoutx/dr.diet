@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useLang } from "@/lib/LangContext";
 import { tField } from "@/lib/tField";
 import { formatMacros } from "@/lib/formatMacro";
+import { MAX_HERO_MEALS } from "@/lib/heroMeals";
 import DecorativeVeggies from "@/components/DecorativeVeggies";
 
 export type HeroMealItem = {
@@ -39,6 +40,8 @@ type SiteSettings = {
   orderOnBeeorderUrl?: string | null;
   instagramUrl?: string | null;
   instagramHandle?: string | null;
+  facebookUrl?: string | null;
+  facebookHandle?: string | null;
 };
 
 const benefitsEn = [
@@ -64,7 +67,7 @@ export default function HeroSection({
   const { lang } = useLang();
   const isRtl = lang === "ar";
   const benefits = isRtl ? benefitsAr : benefitsEn;
-  const items: HeroMealItem[] = meals.length > 0 ? meals : [
+  const items: HeroMealItem[] = meals.length > 0 ? meals.slice(0, MAX_HERO_MEALS) : [
     { id: "fb1", nameEn: "California Salad", nameAr: "سلطة كاليفورنيا", subtitleEn: "Salad", descriptionEn: "Arugula, tomato, avocado, rice, corn & 100g grilled chicken.", protein: 35, calories: 473, image: "/images/hero-california-salad.jpg", badgeEn: "Rotating signature meal", badgeAr: "طبق مميز" },
     { id: "fb2", nameEn: "Dr.Diet Energy Plate", nameAr: "طبق الطاقة", subtitleEn: "Energy Dish", descriptionEn: "Grilled chicken with sautéed vegetables and smart carbs.", protein: 48, calories: 350, image: "/images/hero-energy-plate.jpg", badgeEn: "Rotating signature meal", badgeAr: "طبق مميز" },
     { id: "fb3", nameEn: "Radiance Smoothie", nameAr: "سموذي الإشراق", subtitleEn: "Smoothie", descriptionEn: "Low-fat milk, avocado, banana & honey for clean energy.", calories: 343, image: "/images/hero-radiance-smoothie.jpg", badgeEn: "Rotating signature meal", badgeAr: "طبق مميز" },
@@ -81,8 +84,20 @@ export default function HeroSection({
   const activeMeal = items[activeIndex];
   const orderNowUrl = settings?.orderOnBeeorderUrl?.trim() || null;
   const menuPdfUrl = settings?.menuPdfUrl?.trim() || null;
-  const instagramHref = settings?.instagramUrl || "https://instagram.com/dr.diet.sy";
-  const instagramLabel = settings?.instagramHandle || "@dr.diet.sy";
+  const instagramHref = settings?.instagramUrl?.trim() || "https://instagram.com/dr.diet.sy";
+  const instagramLabel = settings?.instagramHandle?.trim() || "@dr.diet.sy";
+  const facebookHref = settings?.facebookUrl?.trim() || null;
+  const facebookLabel =
+    settings?.facebookHandle?.trim() || tField(lang, "Facebook", "فيسبوك");
+
+  const instagramLinkClass =
+    "text-sm font-medium transition-opacity hover:opacity-90 hover:underline underline-offset-2 decoration-1 " +
+    "text-[#c13584] supports-[background-clip:text]:bg-gradient-to-r supports-[background-clip:text]:from-[#f58529] " +
+    "supports-[background-clip:text]:via-[#dd2a7b] supports-[background-clip:text]:to-[#8134af] supports-[background-clip:text]:bg-clip-text " +
+    "supports-[background-clip:text]:text-transparent";
+
+  const facebookLinkClass =
+    "text-sm font-medium text-[#1877F2] transition-opacity hover:opacity-90 hover:underline underline-offset-2 decoration-1";
   const ctaLabel = tField(lang, heroContent.ctaLabelEn ?? "Order Now", heroContent.ctaLabelAr ?? "اطلب الآن");
   const menuPdfLabel = lang === "ar" ? "القائمة (PDF)" : "View Full Menu (PDF)";
 
@@ -195,15 +210,34 @@ export default function HeroSection({
               </div>
             ) : null}
 
-            <div className={`pt-2 ${isRtl ? "text-right" : ""}`}>
+            <div
+              className={`flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 ${
+                isRtl ? "justify-end" : "justify-start"
+              }`}
+            >
               <a
                 href={instagramHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-drd-muted hover:text-drd-accent transition-colors text-sm"
+                className={instagramLinkClass}
               >
                 {instagramLabel}
               </a>
+              {facebookHref ? (
+                <>
+                  <span className="text-drd-muted/40 select-none text-xs" aria-hidden>
+                    ·
+                  </span>
+                  <a
+                    href={facebookHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={facebookLinkClass}
+                  >
+                    {facebookLabel}
+                  </a>
+                </>
+              ) : null}
             </div>
           </motion.div>
 
@@ -280,7 +314,9 @@ export default function HeroSection({
                       </p>
                     </motion.div>
                   </AnimatePresence>
-                  <div className={`flex items-center gap-1.5 mt-3 pt-3 border-t border-drd-bg ${isRtl ? "justify-end" : ""}`}>
+                  <div
+                    className={`flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-drd-bg max-w-full ${isRtl ? "justify-end" : ""}`}
+                  >
                     {items.map((_, index) => (
                       <button
                         key={index}

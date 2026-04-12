@@ -13,6 +13,19 @@ export type Testimonial = {
   rating: number;
 };
 
+export type TestimonialsSectionTitle = {
+  titleEn?: string | null;
+  titleAr?: string | null;
+  subtitleEn?: string | null;
+  subtitleAr?: string | null;
+};
+
+const DEFAULT_SECTION_TITLE_EN = "Loved by Healthy Food Lovers";
+const DEFAULT_SECTION_TITLE_AR = "محبوب من عشّاق الأكل الصحي";
+const DEFAULT_SECTION_SUBTITLE_EN =
+  "People choose Dr.Diet for everyday balanced meals that fuel their active lifestyles";
+const DEFAULT_SECTION_SUBTITLE_AR = "يختار الناس د.دايت لوجبات يومية متوازنة تدعم أسلوب حياتهم النشط";
+
 // Fallback when DB has no testimonials
 const FALLBACK_TESTIMONIALS: Testimonial[] = [
   {
@@ -281,10 +294,27 @@ function TestimonialCard({ testimonial, onReadMore }: TestimonialCardProps) {
   );
 }
 
-export default function TestimonialsSection({ testimonials: propTestimonials }: { testimonials?: Testimonial[] }) {
+export default function TestimonialsSection({
+  testimonials: propTestimonials,
+  sectionTitle,
+}: {
+  testimonials?: Testimonial[];
+  sectionTitle?: TestimonialsSectionTitle;
+}) {
   const testimonials = (propTestimonials && propTestimonials.length > 0) ? propTestimonials : FALLBACK_TESTIMONIALS;
   const { lang } = useLang();
   const isRtl = lang === "ar";
+
+  const headingTitle = tField(
+    lang,
+    sectionTitle?.titleEn ?? DEFAULT_SECTION_TITLE_EN,
+    sectionTitle?.titleAr ?? DEFAULT_SECTION_TITLE_AR
+  );
+  const headingSubtitle = tField(
+    lang,
+    sectionTitle?.subtitleEn ?? DEFAULT_SECTION_SUBTITLE_EN,
+    sectionTitle?.subtitleAr ?? DEFAULT_SECTION_SUBTITLE_AR
+  );
 
   const [selectedTestimonial, setSelectedTestimonial] = useState<Testimonial | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -384,14 +414,10 @@ export default function TestimonialsSection({ testimonials: propTestimonials }: 
         {/* Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold font-heading text-drd-text mb-4">
-            {tField(lang, "Loved by Healthy Food Lovers", "محبوب من عشّاق الأكل الصحي")}
+            {headingTitle}
           </h2>
           <p className="text-lg text-drd-muted max-w-2xl mx-auto text-center" dir={lang === "ar" ? "rtl" : "ltr"}>
-            {tField(
-              lang,
-              "People choose Dr.Diet for everyday balanced meals that fuel their active lifestyles",
-              "يختار الناس د.دايت لوجبات يومية متوازنة تدعم أسلوب حياتهم النشط"
-            )}
+            {headingSubtitle}
           </p>
         </div>
 

@@ -1,3 +1,7 @@
+/**
+ * Server-side upload for small files (images, PDFs). Keep bodies small; large videos use
+ * client direct upload via `/api/admin/blob-upload` + `upload()` from `@vercel/blob/client`.
+ */
 import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminGuard";

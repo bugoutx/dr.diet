@@ -8,10 +8,12 @@
 
 import { unstable_cache } from "next/cache";
 import { prisma } from "./prisma";
+import { MAX_HERO_MEALS } from "./heroMeals";
+import type { SectionNavVisibility } from "./sectionNavVisibility";
 
 const CACHE_TAG = "site";
 
-// Hero fallback when DB has < 3 active meals
+// Hero fallback when DB has no active meals
 export const HERO_FALLBACK_MEALS = [
   { id: "fb1", title: "California Salad", subtitle: "Salad", calories: 473, protein: 35, imageUrl: "/images/hero-california-salad.jpg", badge: "Rotating signature meal" },
   { id: "fb2", title: "Dr.Diet Energy Plate", subtitle: "Energy Dish", calories: 350, protein: 48, imageUrl: "/images/hero-energy-plate.jpg", badge: "Rotating signature meal" },
@@ -37,7 +39,7 @@ async function getHeroMealsRaw() {
   const rows = await prisma.heroMeal.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: "asc" },
-    take: 3,
+    take: MAX_HERO_MEALS,
   });
   return rows.map((r) => ({
     id: r.id,
@@ -167,9 +169,9 @@ export async function getSiteData() {
     unstable_cache(getMarketRaw, ["market"], { tags: [CACHE_TAG] })(),
   ]);
 
-  // Hero: use DB if >= 3, else fallback (bilingual: nameEn/nameAr, subtitleEn/Ar, badgeEn/Ar; macros formatted in component by lang)
+  // Hero: use DB if any active meals (up to MAX_HERO_MEALS), else fallback (bilingual: nameEn/nameAr, subtitleEn/Ar, badgeEn/Ar; macros formatted in component by lang)
   const heroItems =
-    heroMeals.length >= 3
+    heroMeals.length > 0
       ? heroMeals.map((m) => ({
           id: m.id,
           nameEn: m.title,
@@ -322,6 +324,8 @@ export async function getSiteData() {
       phoneNumber: null,
       instagramUrl: null,
       instagramHandle: null,
+      facebookUrl: null,
+      facebookHandle: null,
       menuPdfUrl: null,
       orderOnBeeorderUrl: null,
       orderOnMovoUrl: null,
@@ -343,6 +347,10 @@ export async function getSiteData() {
       videosTitleAr: null,
       videosSubtitleEn: null,
       videosSubtitleAr: null,
+      testimonialsTitleEn: null,
+      testimonialsTitleAr: null,
+      testimonialsSubtitleEn: null,
+      testimonialsSubtitleAr: null,
       showHero: true,
       showMenu: true,
       showPlates: true,
@@ -390,8 +398,42 @@ export async function getPublicHero() {
       ctaLabelAr: h.ctaLabelAr ?? null,
     },
     meals,
-    settings: { orderOnBeeorderUrl: settings?.orderOnBeeorderUrl ?? null, orderOnMovoUrl: settings?.orderOnMovoUrl ?? null, menuPdfUrl: settings?.menuPdfUrl ?? null, instagramUrl: settings?.instagramUrl ?? null, instagramHandle: settings?.instagramHandle ?? null },
+    settings: {
+      orderOnBeeorderUrl: settings?.orderOnBeeorderUrl ?? null,
+      orderOnMovoUrl: settings?.orderOnMovoUrl ?? null,
+      menuPdfUrl: settings?.menuPdfUrl ?? null,
+      instagramUrl: settings?.instagramUrl ?? null,
+      instagramHandle: settings?.instagramHandle ?? null,
+      facebookUrl: settings?.facebookUrl ?? null,
+      facebookHandle: settings?.facebookHandle ?? null,
+    },
   };
 }
+
+/**
+ * Which section anchors exist on the home page — matches `app/page.tsx` conditions
+ * (settings toggles + market only when there is at least one active market category with items).
+ */
+export const getSectionNavVisibility = unstable_cache(
+  async (): Promise<SectionNavVisibility> => {
+    const [settings, market] = await Promise.all([
+      unstable_cache(getSettingsRaw, ["settings"], { tags: [CACHE_TAG] })(),
+      unstable_cache(getMarketRaw, ["market"], { tags: [CACHE_TAG] })(),
+    ]);
+    const s = settings;
+    return {
+      menu: s?.showMenu ?? true,
+      lovedPlates: s?.showPlates ?? true,
+      market: market.length > 0,
+      science: s?.showScience ?? true,
+      reels: s?.showVideos ?? true,
+      testimonials: s?.showTestimonials ?? true,
+      plans: s?.showPlans ?? true,
+      contact: s?.showContact ?? true,
+    };
+  },
+  ["section-nav-visibility"],
+  { tags: [CACHE_TAG] }
+);
 
 export { CACHE_TAG };

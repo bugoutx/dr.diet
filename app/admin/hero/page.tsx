@@ -8,6 +8,7 @@ import LoadingButton from "@/components/admin/LoadingButton";
 import InlineLoader from "@/components/admin/InlineLoader";
 import { useLang } from "@/lib/LangContext";
 import { tField } from "@/lib/tField";
+import { MAX_HERO_MEALS } from "@/lib/heroMeals";
 
 type HeroData = {
   hero: {
@@ -34,8 +35,6 @@ type HeroData = {
     sortOrder: number;
   }>;
 };
-
-const MAX_MEALS = 3;
 
 export default function AdminHeroPage() {
   const { lang } = useLang();
@@ -123,7 +122,7 @@ export default function AdminHeroPage() {
   }
 
   async function createMeal() {
-    if (!data || data.meals.length >= MAX_MEALS) return;
+    if (!data || data.meals.length >= MAX_HERO_MEALS) return;
     try {
       const res = await fetch("/api/admin/hero/meals", {
         method: "POST",
@@ -391,7 +390,7 @@ export default function AdminHeroPage() {
 
       <section>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <h2 className="text-lg font-semibold text-drd-text">{tField(lang, "Hero meals (max 3)", "وجبات الهيرو (حد أقصى 3)")}</h2>
+          <h2 className="text-lg font-semibold text-drd-text">{tField(lang, "Hero meals (max 5)", "وجبات الهيرو (حد أقصى 5)")}</h2>
           {reorderPending && <InlineLoader label={tField(lang, "Saving order…", "جاري حفظ الترتيب…")} />}
         </div>
         <p className="text-sm text-drd-muted mb-4">
@@ -459,10 +458,10 @@ export default function AdminHeroPage() {
         <button
           type="button"
           onClick={createMeal}
-          disabled={data.meals.length >= MAX_MEALS}
+          disabled={data.meals.length >= MAX_HERO_MEALS}
           className="mt-4 rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {data.meals.length >= MAX_MEALS ? tField(lang, "Already 3 meals", "3 وجبات بالفعل") : tField(lang, "Add hero meal", "إضافة وجبة هيرو")}
+          {data.meals.length >= MAX_HERO_MEALS ? tField(lang, "Already 5 meals", "5 وجبات بالفعل") : tField(lang, "Add hero meal", "إضافة وجبة هيرو")}
         </button>
       </section>
 

@@ -9,7 +9,7 @@ const links: { href: string; labelEn: string; labelAr: string; descEn: string; d
   { href: "/admin/settings", labelEn: "Settings", labelAr: "الإعدادات", descEn: "Phone, Instagram, menu PDF, maps, section toggles", descAr: "الهاتف، إنستغرام، قائمة PDF، الخرائط، إظهار الأقسام" },
   { href: "/admin/categories", labelEn: "Categories", labelAr: "الفئات", descEn: "Menu categories with drag-drop order", descAr: "فئات القائمة مع ترتيب السحب والإفلات" },
   { href: "/admin/meals", labelEn: "Meals", labelAr: "الوجبات", descEn: "CRUD meals per category", descAr: "إدارة الوجبات لكل فئة" },
-  { href: "/admin/hero", labelEn: "Hero", labelAr: "الهيرو", descEn: "3 featured meals for hero section", descAr: "3 وجبات مميزة لقسم الهيرو" },
+  { href: "/admin/hero", labelEn: "Hero", labelAr: "الهيرو", descEn: "Up to 5 featured meals for hero section", descAr: "حتى 5 وجبات مميزة لقسم الهيرو" },
   { href: "/admin/loved-plates", labelEn: "Our Most Loved Plates", labelAr: "أطباقنا المفضلة", descEn: "Manage signature dishes carousel (EN/AR, tags, images)", descAr: "إدارة سلسلة الأطباق المميزة (عربي/إنجليزي، وسوم، صور)" },
   { href: "/admin/market", labelEn: "Market", labelAr: "السوق", descEn: "Dr.Diet Market categories and items (EN/AR, images, macros)", descAr: "فئات ومنتجات سوق Dr.Diet (عربي/إنجليزي، صور، قيم غذائية)" },
   { href: "/admin/videos", labelEn: "Videos", labelAr: "الفيديوهات", descEn: "Max 5 videos, autoplay on landing", descAr: "حد أقصى 5 فيديوهات، تشغيل تلقائي" },

@@ -9,6 +9,8 @@ const settingsSchema = z.object({
   phoneNumber: z.string().optional().nullable(),
   instagramUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
   instagramHandle: z.string().optional().nullable(),
+  facebookUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
+  facebookHandle: z.string().optional().nullable(),
   menuPdfUrl: z.string().optional().nullable(), // URL or relative path e.g. /menu.pdf
   orderOnBeeorderUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
   orderOnMovoUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
@@ -39,6 +41,10 @@ const settingsSchema = z.object({
   videosTitleAr: z.string().optional().nullable(),
   videosSubtitleEn: z.string().optional().nullable(),
   videosSubtitleAr: z.string().optional().nullable(),
+  testimonialsTitleEn: z.string().optional().nullable(),
+  testimonialsTitleAr: z.string().optional().nullable(),
+  testimonialsSubtitleEn: z.string().optional().nullable(),
+  testimonialsSubtitleAr: z.string().optional().nullable(),
 });
 
 export async function GET() {
@@ -66,6 +72,8 @@ export async function PUT(req: NextRequest) {
   if (data.phoneNumber !== undefined) update.phoneNumber = data.phoneNumber;
   if (data.instagramUrl !== undefined) update.instagramUrl = data.instagramUrl;
   if (data.instagramHandle !== undefined) update.instagramHandle = data.instagramHandle;
+  if (data.facebookUrl !== undefined) update.facebookUrl = data.facebookUrl;
+  if (data.facebookHandle !== undefined) update.facebookHandle = data.facebookHandle;
   if (data.menuPdfUrl !== undefined) update.menuPdfUrl = data.menuPdfUrl;
   if (data.orderOnBeeorderUrl !== undefined) update.orderOnBeeorderUrl = data.orderOnBeeorderUrl;
   if (data.orderOnMovoUrl !== undefined) update.orderOnMovoUrl = data.orderOnMovoUrl;
@@ -105,6 +113,10 @@ export async function PUT(req: NextRequest) {
   if (data.videosTitleAr !== undefined) update.videosTitleAr = (data.videosTitleAr ?? "").trim() || null;
   if (data.videosSubtitleEn !== undefined) update.videosSubtitleEn = (data.videosSubtitleEn ?? "").trim() || null;
   if (data.videosSubtitleAr !== undefined) update.videosSubtitleAr = (data.videosSubtitleAr ?? "").trim() || null;
+  if (data.testimonialsTitleEn !== undefined) update.testimonialsTitleEn = (data.testimonialsTitleEn ?? "").trim() || null;
+  if (data.testimonialsTitleAr !== undefined) update.testimonialsTitleAr = (data.testimonialsTitleAr ?? "").trim() || null;
+  if (data.testimonialsSubtitleEn !== undefined) update.testimonialsSubtitleEn = (data.testimonialsSubtitleEn ?? "").trim() || null;
+  if (data.testimonialsSubtitleAr !== undefined) update.testimonialsSubtitleAr = (data.testimonialsSubtitleAr ?? "").trim() || null;
 
   const settings = await prisma.siteSettings.upsert({
     where: { id: "singleton" },

@@ -32,6 +32,8 @@ model SiteSettings {
   phoneNumber    String?
   instagramUrl   String?
   instagramHandle String?
+  facebookUrl    String?
+  facebookHandle String?
   
   // Menu PDF
   menuPdfUrl     String?
@@ -65,6 +67,12 @@ model SiteSettings {
   videosTitleAr   String?
   videosSubtitleEn String?  @db.Text
   videosSubtitleAr String?  @db.Text
+
+  // Testimonials section (bilingual title + subtitle)
+  testimonialsTitleEn    String?
+  testimonialsTitleAr   String?
+  testimonialsSubtitleEn String?  @db.Text
+  testimonialsSubtitleAr String?  @db.Text
 
   // Section visibility toggles
   showHero        Boolean @default(true)

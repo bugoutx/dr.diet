@@ -11,6 +11,8 @@ type Settings = {
   phoneNumber: string | null;
   instagramUrl: string | null;
   instagramHandle: string | null;
+  facebookUrl: string | null;
+  facebookHandle: string | null;
   menuPdfUrl: string | null;
   orderOnBeeorderUrl: string | null;
   orderOnMovoUrl: string | null;
@@ -49,6 +51,8 @@ export default function AdminSettingsPage() {
           locationEn: data.locationEn ?? null,
           locationAr: data.locationAr ?? null,
           orderOnMovoUrl: data.orderOnMovoUrl ?? null,
+          facebookUrl: data.facebookUrl ?? null,
+          facebookHandle: data.facebookHandle ?? null,
         });
       })
       .catch(console.error)
@@ -184,6 +188,30 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setSettings({ ...settings, instagramHandle: e.target.value || null })}
                 className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
                 placeholder="@dr.diet.sy"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">
+                {tField(lang, "Facebook URL", "رابط فيسبوك")}
+              </label>
+              <input
+                type="url"
+                value={settings.facebookUrl ?? ""}
+                onChange={(e) => setSettings({ ...settings, facebookUrl: e.target.value || null })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                placeholder="https://facebook.com/..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">
+                {tField(lang, "Facebook Handle", "اسم حساب فيسبوك")}
+              </label>
+              <input
+                type="text"
+                value={settings.facebookHandle ?? ""}
+                onChange={(e) => setSettings({ ...settings, facebookHandle: e.target.value || null })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                placeholder="@drdiet.facebook"
               />
             </div>
           </div>

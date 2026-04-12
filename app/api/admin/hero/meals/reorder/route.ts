@@ -3,9 +3,10 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidateSite } from "@/lib/revalidate";
 import { requireAdmin } from "@/lib/adminGuard";
+import { MAX_HERO_MEALS } from "@/lib/heroMeals";
 
 const reorderSchema = z.object({
-  ids: z.array(z.string()).min(1).max(3),
+  ids: z.array(z.string()).min(1).max(MAX_HERO_MEALS),
 });
 
 export async function PUT(req: NextRequest) {

@@ -4,11 +4,15 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useLang } from "@/lib/LangContext";
 import { NAV_ITEMS, scrollToSection } from "@/lib/navLinks";
+import { useSectionNav } from "@/lib/SectionNavContext";
+import { filterNavItemsByVisibility } from "@/lib/sectionNavVisibility";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { lang, setLang } = useLang();
+  const sectionNav = useSectionNav();
+  const navItems = filterNavItemsByVisibility(NAV_ITEMS, sectionNav);
   const isRtl = lang === "ar";
 
   useEffect(() => {
@@ -56,7 +60,7 @@ export default function Navbar() {
 
         {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-1 lg:gap-2">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <a
               key={item.id}
               href={`#${item.id}`}
@@ -117,7 +121,7 @@ export default function Navbar() {
         >
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex flex-col gap-0.5">
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <a
                   key={item.id}
                   href={`#${item.id}`}

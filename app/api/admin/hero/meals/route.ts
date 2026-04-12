@@ -3,8 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidateSite } from "@/lib/revalidate";
 import { requireAdmin } from "@/lib/adminGuard";
-
-const MAX_HERO_MEALS = 3;
+import { MAX_HERO_MEALS } from "@/lib/heroMeals";
 
 const createMealSchema = z.object({
   title: z.string().min(1),

@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useCallback } from "react";
 import { useLang } from "@/lib/LangContext";
 import { NAV_ITEMS, scrollToSection } from "@/lib/navLinks";
+import { useSectionNav } from "@/lib/SectionNavContext";
+import { filterNavItemsByVisibility } from "@/lib/sectionNavVisibility";
 
 type FooterSettings = {
   instagramUrl?: string | null;
@@ -12,6 +14,8 @@ type FooterSettings = {
 
 export default function FooterSection({ settings }: { settings?: FooterSettings | null }) {
   const { lang } = useLang();
+  const sectionNav = useSectionNav();
+  const navItems = filterNavItemsByVisibility(NAV_ITEMS, sectionNav);
   const instagramHref = settings?.instagramUrl || "https://instagram.com/dr.diet.sy";
   const instagramLabel = settings?.instagramHandle || "Instagram";
   const isRtl = lang === "ar";
@@ -68,7 +72,7 @@ export default function FooterSection({ settings }: { settings?: FooterSettings 
             aria-label={isRtl ? "روابط الأقسام" : "Section links"}
             className="flex w-full max-w-xl flex-wrap items-center justify-center gap-x-5 gap-y-2.5 md:max-w-none"
           >
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <a
                 key={item.id}
                 href={`#${item.id}`}

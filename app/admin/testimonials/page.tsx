@@ -19,6 +19,13 @@ type Testimonial = {
   sortOrder: number;
 };
 
+type SectionContent = {
+  testimonialsTitleEn: string | null;
+  testimonialsTitleAr: string | null;
+  testimonialsSubtitleEn: string | null;
+  testimonialsSubtitleAr: string | null;
+};
+
 function StarDots({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
@@ -37,6 +44,13 @@ export default function AdminTestimonialsPage() {
   const { lang } = useLang();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sectionContent, setSectionContent] = useState<SectionContent>({
+    testimonialsTitleEn: null,
+    testimonialsTitleAr: null,
+    testimonialsSubtitleEn: null,
+    testimonialsSubtitleAr: null,
+  });
+  const [sectionSaving, setSectionSaving] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -59,9 +73,48 @@ export default function AdminTestimonialsPage() {
       .finally(() => setLoading(false));
   }
 
+  function fetchSectionContent() {
+    fetch("/api/admin/settings", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        setSectionContent({
+          testimonialsTitleEn: data.testimonialsTitleEn ?? null,
+          testimonialsTitleAr: data.testimonialsTitleAr ?? null,
+          testimonialsSubtitleEn: data.testimonialsSubtitleEn ?? null,
+          testimonialsSubtitleAr: data.testimonialsSubtitleAr ?? null,
+        });
+      })
+      .catch(console.error);
+  }
+
   useEffect(() => {
     fetchTestimonials();
+    fetchSectionContent();
   }, []);
+
+  async function handleSaveSectionContent(e: React.FormEvent) {
+    e.preventDefault();
+    setSectionSaving(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          testimonialsTitleEn: sectionContent.testimonialsTitleEn?.trim() || null,
+          testimonialsTitleAr: sectionContent.testimonialsTitleAr?.trim() || null,
+          testimonialsSubtitleEn: sectionContent.testimonialsSubtitleEn?.trim() || null,
+          testimonialsSubtitleAr: sectionContent.testimonialsSubtitleAr?.trim() || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      toast.success(tField(lang, "Section title & subtitle saved", "تم حفظ عنوان القسم والعنوان الفرعي"));
+    } catch {
+      toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
+    } finally {
+      setSectionSaving(false);
+    }
+  }
 
   function openAdd() {
     setEditingId(null);
@@ -244,6 +297,106 @@ export default function AdminTestimonialsPage() {
           </button>
         }
       />
+
+      <form
+        onSubmit={handleSaveSectionContent}
+        className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <h2 className="text-lg font-semibold text-drd-text mb-2">
+          {tField(lang, "Section title & subtitle", "عنوان القسم والعنوان الفرعي")}
+        </h2>
+        <p className="text-sm text-drd-muted mb-4">
+          {tField(
+            lang,
+            "Shown at the top of the Testimonials section on the landing page.",
+            "يظهر أعلى قسم آراء العملاء في الصفحة الرئيسية."
+          )}
+        </p>
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-drd-text mb-2">
+              {tField(lang, "Testimonials Title", "عنوان قسم آراء العملاء")}
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-drd-text mb-1">
+                  {tField(lang, "Title (English)", "العنوان (إنجليزي)")}
+                </label>
+                <input
+                  type="text"
+                  value={sectionContent.testimonialsTitleEn ?? ""}
+                  onChange={(e) =>
+                    setSectionContent((s) => ({ ...s, testimonialsTitleEn: e.target.value || null }))
+                  }
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                  placeholder="Loved by Healthy Food Lovers"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-drd-text mb-1">
+                  {tField(lang, "Title (Arabic)", "العنوان (عربي)")}
+                </label>
+                <input
+                  type="text"
+                  value={sectionContent.testimonialsTitleAr ?? ""}
+                  onChange={(e) =>
+                    setSectionContent((s) => ({ ...s, testimonialsTitleAr: e.target.value || null }))
+                  }
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                  placeholder="محبوب من عشّاق الأكل الصحي"
+                  dir="rtl"
+                />
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-drd-text mb-2">
+              {tField(lang, "Testimonials Subtitle", "العنوان الفرعي لقسم آراء العملاء")}
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-1">
+              <div>
+                <label className="block text-sm font-medium text-drd-text mb-1">
+                  {tField(lang, "Subtitle (English)", "العنوان الفرعي (إنجليزي)")}
+                </label>
+                <textarea
+                  value={sectionContent.testimonialsSubtitleEn ?? ""}
+                  onChange={(e) =>
+                    setSectionContent((s) => ({ ...s, testimonialsSubtitleEn: e.target.value || null }))
+                  }
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text min-h-[80px]"
+                  placeholder="People choose Dr.Diet for everyday balanced meals that fuel their active lifestyles"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-drd-text mb-1">
+                  {tField(lang, "Subtitle (Arabic)", "العنوان الفرعي (عربي)")}
+                </label>
+                <textarea
+                  value={sectionContent.testimonialsSubtitleAr ?? ""}
+                  onChange={(e) =>
+                    setSectionContent((s) => ({ ...s, testimonialsSubtitleAr: e.target.value || null }))
+                  }
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text min-h-[80px]"
+                  placeholder="يختار الناس د.دايت لوجبات يومية متوازنة تدعم أسلوب حياتهم النشط"
+                  dir="rtl"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4">
+          <button
+            type="submit"
+            disabled={sectionSaving}
+            className="rounded-full bg-drd-primary px-5 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-70"
+          >
+            {sectionSaving
+              ? tField(lang, "Saving…", "جاري الحفظ…")
+              : tField(lang, "Save section title & subtitle", "حفظ عنوان القسم والعنوان الفرعي")}
+          </button>
+        </div>
+      </form>
+
       <p className="text-drd-muted mb-6">
         {tField(lang, "Manage customer testimonials. Only active ones appear on the landing page. Use ▲▼ to reorder.", "إدارة شهادات العملاء. تظهر النشطة فقط على الصفحة الرئيسية. استخدم ▲▼ لإعادة الترتيب.")}
       </p>

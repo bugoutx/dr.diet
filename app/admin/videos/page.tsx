@@ -7,6 +7,7 @@ import InlineLoader from "@/components/admin/InlineLoader";
 import LoadingButton from "@/components/admin/LoadingButton";
 import { useLang } from "@/lib/LangContext";
 import { tField } from "@/lib/tField";
+import { MAX_VIDEO_BYTES, uploadAdminVideoBlob } from "@/lib/uploadVideoClient";
 
 const MAX_VIDEOS = 5;
 
@@ -98,9 +99,17 @@ export default function AdminVideosPage() {
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const allowed = ["video/mp4", "video/quicktime"];
-    if (!allowed.includes(file.type) && !file.name.toLowerCase().endsWith(".mp4") && !file.name.toLowerCase().endsWith(".mov")) {
-      toast.error(tField(lang, "Please select an MP4 or MOV video file.", "يرجى اختيار ملف فيديو MP4 أو MOV."));
+    const allowedMime = ["video/mp4", "video/quicktime", "video/webm"];
+    const ext = file.name.toLowerCase();
+    const extOk = ext.endsWith(".mp4") || ext.endsWith(".mov") || ext.endsWith(".webm");
+    if (!allowedMime.includes(file.type) && !extOk) {
+      toast.error(
+        tField(
+          lang,
+          "That file type isn’t supported. Use MP4, MOV, or WebM.",
+          "نوع الملف غير مدعوم. استخدم MP4 أو MOV أو WebM."
+        )
+      );
       e.target.value = "";
       return;
     }
@@ -109,22 +118,52 @@ export default function AdminVideosPage() {
       e.target.value = "";
       return;
     }
+    if (file.size > MAX_VIDEO_BYTES) {
+      toast.error(
+        tField(
+          lang,
+          `This file is too large. Maximum size is ${Math.floor(MAX_VIDEO_BYTES / 1024 / 1024)} MB — try compressing the video or choosing a shorter clip.`,
+          `الملف كبير جداً. الحد الأقصى ${Math.floor(MAX_VIDEO_BYTES / 1024 / 1024)} ميجابايت — جرّب ضغط الفيديو أو اختيار مقطع أقصر.`
+        )
+      );
+      e.target.value = "";
+      return;
+    }
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.set("file", file);
-      fd.set("folder", "videos");
-      const uploadRes = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: fd,
-        credentials: "include",
-      });
-      const uploadData = await uploadRes.json().catch(() => ({}));
-      if (!uploadRes.ok) {
-        toast.error(uploadData?.error ?? tField(lang, "Upload failed", "فشل الرفع"));
+      let videoUrl: string;
+      try {
+        const out = await uploadAdminVideoBlob(file);
+        videoUrl = out.url;
+      } catch (uploadErr: unknown) {
+        const code = uploadErr instanceof Error ? uploadErr.message : "";
+        if (code === "INVALID_TYPE") {
+          toast.error(
+            tField(
+              lang,
+              "That file type isn’t supported. Use MP4, MOV, or WebM.",
+              "نوع الملف غير مدعوم. استخدم MP4 أو MOV أو WebM."
+            )
+          );
+          return;
+        }
+        if (code === "FILE_TOO_LARGE") {
+          toast.error(
+            tField(
+              lang,
+              `This file is too large. Maximum size is ${Math.floor(MAX_VIDEO_BYTES / 1024 / 1024)} MB.`,
+              `الملف كبير جداً. الحد الأقصى ${Math.floor(MAX_VIDEO_BYTES / 1024 / 1024)} ميجابايت.`
+            )
+          );
+          return;
+        }
+        toast.error(
+          uploadErr instanceof Error
+            ? uploadErr.message
+            : tField(lang, "We couldn’t upload the video. Check your connection and try again.", "تعذّر رفع الفيديو. تحقق من الاتصال وحاول مرة أخرى.")
+        );
         return;
       }
-      const videoUrl = uploadData?.url ?? uploadData?.downloadUrl;
       if (!videoUrl) {
         toast.error(tField(lang, "Upload succeeded but no URL returned.", "تم الرفع لكن لم يُرجع رابط."));
         return;
@@ -141,7 +180,9 @@ export default function AdminVideosPage() {
         return;
       }
       setVideos((prev) => [...prev, createData].sort((a, b) => a.sortOrder - b.sortOrder));
-      toast.success(tField(lang, "Video added", "تمت إضافة الفيديو"));
+      toast.success(
+        tField(lang, "Video uploaded successfully and added to your list.", "تم رفع الفيديو بنجاح وإضافته إلى القائمة.")
+      );
     } catch {
       toast.error(tField(lang, "Something went wrong", "حدث خطأ ما"));
     } finally {
@@ -313,13 +354,32 @@ export default function AdminVideosPage() {
       {/* Upload */}
       <div className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-drd-text mb-2">{tField(lang, "Upload Video", "رفع فيديو")}</h2>
-        <p className="text-sm text-drd-muted mb-4">{tField(lang, "You can upload up to 5 videos. MP4 or MOV.", "يمكنك رفع حتى 5 فيديوهات. MP4 أو MOV.")}</p>
+        <p className="text-sm text-drd-muted mb-2">
+          {tField(
+            lang,
+            `Up to ${MAX_VIDEOS} videos. Formats: MP4, MOV, or WebM. Max ${Math.floor(MAX_VIDEO_BYTES / 1024 / 1024)} MB per file.`,
+            `حتى ${MAX_VIDEOS} فيديوهات. الصيغ: MP4 أو MOV أو WebM. بحد أقصى ${Math.floor(MAX_VIDEO_BYTES / 1024 / 1024)} ميجابايت لكل ملف.`
+          )}
+        </p>
+        <div className="mb-4 rounded-lg border border-drd-primary/20 bg-drd-primary/5 px-4 py-3 text-sm text-drd-text/90">
+          <p className="font-medium text-drd-text mb-1">
+            {tField(lang, "Direct upload", "رفع مباشر")}
+          </p>
+          <p className="leading-relaxed text-drd-text/80">
+            {tField(
+              lang,
+              "Videos upload straight from your browser to secure storage (not through our small upload API). Larger files can take several minutes — keep this tab open until the upload finishes.",
+              "تُرفع الفيديوهات مباشرة من المتصفح إلى التخزين الآمن (وليس عبر مسار الرفع الصغير). الملفات الكبيرة قد تحتاج عدة دقائق — أبقِ هذه الصفحة مفتوحة حتى يكتمل الرفع."
+            )}
+          </p>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
-          accept="video/mp4,video/quicktime,.mp4,.mov"
+          accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
           onChange={handleFileSelect}
           className="hidden"
+          disabled={uploading}
         />
         <button
           type="button"
@@ -327,9 +387,17 @@ export default function AdminVideosPage() {
           onClick={() => fileInputRef.current?.click()}
           className="rounded-full bg-drd-primary px-6 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {uploading ? tField(lang, "Uploading…", "جاري الرفع…") : videos.length >= MAX_VIDEOS ? tField(lang, "Maximum 5 videos", "حد أقصى 5 فيديوهات") : tField(lang, "Upload Video", "رفع فيديو")}
+          {uploading
+            ? tField(lang, "Uploading video…", "جاري رفع الفيديو…")
+            : videos.length >= MAX_VIDEOS
+              ? tField(lang, "Maximum 5 videos", "حد أقصى 5 فيديوهات")
+              : tField(lang, "Upload Video", "رفع فيديو")}
         </button>
-        {uploading && <span className="ml-3 align-middle"><InlineLoader label={tField(lang, "Uploading…", "جاري الرفع…")} /></span>}
+        {uploading && (
+          <span className="ml-3 align-middle" aria-hidden>
+            <InlineLoader label="" />
+          </span>
+        )}
       </div>
 
       {/* List */}
