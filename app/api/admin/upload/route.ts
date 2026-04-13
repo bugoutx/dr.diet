@@ -19,9 +19,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (folder === "menu") {
+    if (folder === "menu" || folder === "subscription-plans") {
       if (file.type !== "application/pdf") {
-        return NextResponse.json({ error: "Only PDF files are allowed for the menu" }, { status: 400 });
+        return NextResponse.json(
+          { error: folder === "menu" ? "Only PDF files are allowed for the menu" : "Only PDF files are allowed" },
+          { status: 400 }
+        );
       }
     }
 

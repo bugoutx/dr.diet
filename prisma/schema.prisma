@@ -284,6 +284,8 @@ model SubscriptionPlan {
   featuresAr Json     // array of strings
   weeklyPrice  Int?   // SYP; at least one of weekly/monthly required (validated in API)
   monthlyPrice Int?
+  pdfUrl       String?  // optional downloadable plan PDF (e.g. Vercel Blob)
+  pdfFileName  String?  // original filename for download / display
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

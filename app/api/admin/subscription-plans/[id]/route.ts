@@ -17,6 +17,8 @@ const updateSchema = z.object({
   order: z.number().int().min(0).optional(),
   isPopular: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  pdfUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
+  pdfFileName: z.string().optional().nullable(),
 }).refine(
   (d) => {
     if (d.weeklyPrice === undefined && d.monthlyPrice === undefined) return true;
@@ -67,6 +69,8 @@ export async function PATCH(
   if (parsed.data.order !== undefined) data.order = parsed.data.order;
   if (parsed.data.isPopular !== undefined) data.isPopular = parsed.data.isPopular;
   if (parsed.data.isActive !== undefined) data.isActive = parsed.data.isActive;
+  if (parsed.data.pdfUrl !== undefined) data.pdfUrl = (parsed.data.pdfUrl ?? "").trim() || null;
+  if (parsed.data.pdfFileName !== undefined) data.pdfFileName = (parsed.data.pdfFileName ?? "").trim() || null;
 
   const finalWeekly = (data.weeklyPrice !== undefined ? data.weeklyPrice : existing.weeklyPrice) ?? null;
   const finalMonthly = (data.monthlyPrice !== undefined ? data.monthlyPrice : existing.monthlyPrice) ?? null;

@@ -17,6 +17,8 @@ const createSchema = z.object({
   order: z.number().int().min(0).optional(),
   isPopular: z.boolean().optional().default(false),
   isActive: z.boolean().optional().default(true),
+  pdfUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
+  pdfFileName: z.string().optional().nullable(),
 }).refine((d) => d.weeklyPrice != null || d.monthlyPrice != null, {
   message: "At least one of weeklyPrice or monthlyPrice must be provided",
 });
@@ -54,6 +56,8 @@ export async function POST(req: NextRequest) {
       order: parsed.data.order ?? count,
       isPopular: parsed.data.isPopular ?? false,
       isActive: parsed.data.isActive ?? true,
+      pdfUrl: (parsed.data.pdfUrl ?? "").trim() || null,
+      pdfFileName: (parsed.data.pdfFileName ?? "").trim() || null,
     },
   });
   revalidateSite();

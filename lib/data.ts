@@ -279,6 +279,8 @@ export async function getSiteData() {
       priceWeekly: p.weeklyPrice ?? undefined,
       priceMonthly: p.monthlyPrice ?? undefined,
       isPopular: p.isPopular,
+      pdfUrl: p.pdfUrl ?? undefined,
+      pdfFileName: p.pdfFileName ?? undefined,
     };
   });
 

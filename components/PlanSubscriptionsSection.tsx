@@ -18,6 +18,8 @@ export type Plan = {
   priceWeekly?: number | null;
   priceMonthly?: number | null;
   isPopular?: boolean;
+  pdfUrl?: string | null;
+  pdfFileName?: string | null;
 };
 
 // Copy for section labels (EN/AR)
@@ -258,6 +260,28 @@ function PlanCard({ plan, billingPeriod }: PlanCardProps) {
                 {periodLabel}
               </p>
             </div>
+            {plan.pdfUrl ? (
+              <div className="mt-5 text-center">
+                <a
+                  href={plan.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={plan.pdfFileName || "plan.pdf"}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-drd-primary/35 bg-white/90 px-4 py-2.5 text-sm font-semibold text-drd-primary shadow-sm transition hover:border-drd-primary/60 hover:bg-drd-primary/5"
+                  dir={lang === "ar" ? "rtl" : "ltr"}
+                >
+                  <svg className="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <span>{tField(lang, "Download Plan PDF", "تحميل ملف الخطة")}</span>
+                </a>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

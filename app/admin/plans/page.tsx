@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import InlineLoader from "@/components/admin/InlineLoader";
@@ -21,6 +21,8 @@ type SubscriptionPlan = {
   featuresAr: string[];
   weeklyPrice: number | null;
   monthlyPrice: number | null;
+  pdfUrl: string | null;
+  pdfFileName: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -51,6 +53,10 @@ export default function AdminPlansPage() {
   const [formFeaturesAr, setFormFeaturesAr] = useState<string[]>([""]);
   const [formPopular, setFormPopular] = useState(false);
   const [formActive, setFormActive] = useState(true);
+  const [formPdfUrl, setFormPdfUrl] = useState("");
+  const [formPdfFileName, setFormPdfFileName] = useState("");
+  const [pdfUploading, setPdfUploading] = useState(false);
+  const planPdfInputRef = useRef<HTMLInputElement>(null);
 
   function fetchPlans() {
     fetch("/api/admin/subscription-plans", { credentials: "include" })
@@ -60,6 +66,8 @@ export default function AdminPlansPage() {
           setPlans(
             data.map((p: SubscriptionPlan & { featuresEn: unknown; featuresAr: unknown }) => ({
               ...p,
+              pdfUrl: p.pdfUrl ?? null,
+              pdfFileName: p.pdfFileName ?? null,
               featuresEn: parseFeatures(p.featuresEn),
               featuresAr: parseFeatures(p.featuresAr),
             }))
@@ -86,6 +94,8 @@ export default function AdminPlansPage() {
     setFormFeaturesAr([""]);
     setFormPopular(false);
     setFormActive(true);
+    setFormPdfUrl("");
+    setFormPdfFileName("");
     setModalOpen("add");
   }
 
@@ -101,6 +111,8 @@ export default function AdminPlansPage() {
     setFormFeaturesAr(p.featuresAr.length ? p.featuresAr : [""]);
     setFormPopular(p.isPopular);
     setFormActive(p.isActive);
+    setFormPdfUrl(p.pdfUrl ?? "");
+    setFormPdfFileName(p.pdfFileName ?? "");
     setModalOpen("edit");
   }
 
@@ -128,6 +140,62 @@ export default function AdminPlansPage() {
   const monthlyNum = formMonthlyPrice.trim() === "" ? null : parseInt(formMonthlyPrice.replace(/,/g, ""), 10);
   const hasPrice = (weeklyNum != null && !Number.isNaN(weeklyNum)) || (monthlyNum != null && !Number.isNaN(monthlyNum));
 
+  async function handlePlanPdfFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast.error(tField(lang, "Please select a PDF file only.", "يرجى اختيار ملف PDF فقط."));
+      return;
+    }
+    setPdfUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "subscription-plans");
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd, credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error ?? "Upload failed");
+      setFormPdfUrl(data.url ?? "");
+      setFormPdfFileName(file.name);
+      toast.success(tField(lang, "PDF uploaded.", "تم رفع ملف PDF."));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : tField(lang, "Upload failed.", "فشل الرفع."));
+    } finally {
+      setPdfUploading(false);
+    }
+  }
+
+  async function handlePlanPdfDelete() {
+    if (!formPdfUrl && !formPdfFileName) return;
+    if (!editingId) {
+      setFormPdfUrl("");
+      setFormPdfFileName("");
+      return;
+    }
+    setPdfUploading(true);
+    try {
+      const res = await fetch(`/api/admin/subscription-plans/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ pdfUrl: null, pdfFileName: null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error ?? "Failed to remove PDF");
+      setFormPdfUrl("");
+      setFormPdfFileName("");
+      setPlans((prev) =>
+        prev.map((p) => (p.id === editingId ? { ...p, pdfUrl: null, pdfFileName: null } : p))
+      );
+      toast.success(tField(lang, "PDF removed.", "تم حذف الملف."));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : tField(lang, "Something went wrong", "حدث خطأ ما"));
+    } finally {
+      setPdfUploading(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const titleEn = formTitleEn.trim();
@@ -151,6 +219,8 @@ export default function AdminPlansPage() {
       featuresAr: formFeaturesAr.map((s) => s.trim()).filter(Boolean),
       isPopular: formPopular,
       isActive: formActive,
+      pdfUrl: formPdfUrl.trim() || null,
+      pdfFileName: formPdfFileName.trim() || null,
     };
     setSavingId(editingId ?? "new");
     try {
@@ -166,7 +236,18 @@ export default function AdminPlansPage() {
           const msg = data?.error?.formErrors?.[0] ?? data?.error?.fieldErrors?.titleEn?.[0] ?? data?.error ?? "Failed to create";
           throw new Error(msg);
         }
-        setPlans((prev) => [...prev, { ...data, featuresEn: parseFeatures(data.featuresEn), featuresAr: parseFeatures(data.featuresAr) }].sort((a, b) => a.order - b.order));
+        setPlans((prev) =>
+          [
+            ...prev,
+            {
+              ...data,
+              pdfUrl: data.pdfUrl ?? null,
+              pdfFileName: data.pdfFileName ?? null,
+              featuresEn: parseFeatures(data.featuresEn),
+              featuresAr: parseFeatures(data.featuresAr),
+            },
+          ].sort((a, b) => a.order - b.order)
+        );
         toast.success(tField(lang, "Plan added", "تمت إضافة الخطة"));
       } else {
         if (!editingId) return;
@@ -183,7 +264,15 @@ export default function AdminPlansPage() {
         }
         setPlans((prev) =>
           prev.map((p) =>
-            p.id === editingId ? { ...data, featuresEn: parseFeatures(data.featuresEn), featuresAr: parseFeatures(data.featuresAr) } : p
+            p.id === editingId
+              ? {
+                  ...data,
+                  pdfUrl: data.pdfUrl ?? null,
+                  pdfFileName: data.pdfFileName ?? null,
+                  featuresEn: parseFeatures(data.featuresEn),
+                  featuresAr: parseFeatures(data.featuresAr),
+                }
+              : p
           )
         );
         toast.success(tField(lang, "Updated", "تم التحديث"));
@@ -363,6 +452,11 @@ export default function AdminPlansPage() {
                 {tField(lang, "Popular", "الأكثر شعبية")}
               </span>
             )}
+            {p.pdfUrl && (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-drd-text/80 border border-slate-200">
+                PDF
+              </span>
+            )}
             <label className="flex items-center gap-2">
               <span className="text-sm text-drd-muted">{tField(lang, "Active", "مفعل")}</span>
               <input
@@ -532,6 +626,65 @@ export default function AdminPlansPage() {
               </div>
               <p className="text-xs text-drd-muted">At least one of weekly or monthly price is required.</p>
 
+              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 space-y-3">
+                <label className="block text-sm font-semibold text-drd-text">
+                  {tField(lang, "Plan PDF", "ملف الخطة")}
+                </label>
+                <input
+                  ref={planPdfInputRef}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="hidden"
+                  onChange={handlePlanPdfFile}
+                  disabled={!!savingId || pdfUploading}
+                />
+                {formPdfUrl ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-drd-muted truncate" title={formPdfFileName || formPdfUrl}>
+                      {formPdfFileName || tField(lang, "PDF attached", "ملف PDF مرفق")}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={formPdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center rounded-lg border border-drd-primary bg-drd-primary/10 px-3 py-1.5 text-sm font-medium text-drd-primary hover:bg-drd-primary/20"
+                      >
+                        {tField(lang, "View PDF", "عرض الملف")}
+                      </a>
+                      <button
+                        type="button"
+                        disabled={!!savingId || pdfUploading}
+                        onClick={() => planPdfInputRef.current?.click()}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-drd-text hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        {tField(lang, "Replace PDF", "استبدال الملف")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!!savingId || pdfUploading}
+                        onClick={handlePlanPdfDelete}
+                        className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        {tField(lang, "Delete PDF", "حذف الملف")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={!!savingId || pdfUploading}
+                    onClick={() => planPdfInputRef.current?.click()}
+                    className="rounded-lg border border-drd-primary bg-drd-primary/10 px-4 py-2 text-sm font-medium text-drd-primary hover:bg-drd-primary/20 disabled:opacity-50"
+                  >
+                    {tField(lang, "Upload PDF", "رفع ملف PDF")}
+                  </button>
+                )}
+                {pdfUploading && (
+                  <p className="text-xs text-drd-muted">{tField(lang, "Uploading…", "جاري الرفع…")}</p>
+                )}
+              </div>
+
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-sm font-medium text-drd-text">Features (EN)</label>
@@ -621,7 +774,7 @@ export default function AdminPlansPage() {
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  disabled={!!savingId || !hasPrice}
+                  disabled={!!savingId || !hasPrice || pdfUploading}
                   className="rounded-full bg-drd-primary px-5 py-2 font-semibold text-white hover:bg-drd-primary-dark disabled:opacity-50"
                 >
                   {savingId ? "Saving…" : modalOpen === "add" ? "Create" : "Save"}
