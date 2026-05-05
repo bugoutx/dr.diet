@@ -23,6 +23,7 @@ type SubscriptionPlan = {
   monthlyPrice: number | null;
   pdfUrl: string | null;
   pdfFileName: string | null;
+  subscribeUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -55,6 +56,7 @@ export default function AdminPlansPage() {
   const [formActive, setFormActive] = useState(true);
   const [formPdfUrl, setFormPdfUrl] = useState("");
   const [formPdfFileName, setFormPdfFileName] = useState("");
+  const [formSubscribeUrl, setFormSubscribeUrl] = useState("");
   const [pdfUploading, setPdfUploading] = useState(false);
   const planPdfInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,6 +70,7 @@ export default function AdminPlansPage() {
               ...p,
               pdfUrl: p.pdfUrl ?? null,
               pdfFileName: p.pdfFileName ?? null,
+              subscribeUrl: p.subscribeUrl ?? null,
               featuresEn: parseFeatures(p.featuresEn),
               featuresAr: parseFeatures(p.featuresAr),
             }))
@@ -96,6 +99,7 @@ export default function AdminPlansPage() {
     setFormActive(true);
     setFormPdfUrl("");
     setFormPdfFileName("");
+    setFormSubscribeUrl("");
     setModalOpen("add");
   }
 
@@ -113,6 +117,7 @@ export default function AdminPlansPage() {
     setFormActive(p.isActive);
     setFormPdfUrl(p.pdfUrl ?? "");
     setFormPdfFileName(p.pdfFileName ?? "");
+    setFormSubscribeUrl(p.subscribeUrl ?? "");
     setModalOpen("edit");
   }
 
@@ -208,6 +213,15 @@ export default function AdminPlansPage() {
       toast.error(tField(lang, "At least one of Weekly or Monthly price must be set", "يجب تحديد السعر الأسبوعي أو الشهري على الأقل"));
       return;
     }
+    const subscribeUrlTrimmed = formSubscribeUrl.trim();
+    if (subscribeUrlTrimmed) {
+      try {
+        new URL(subscribeUrlTrimmed);
+      } catch {
+        toast.error(tField(lang, "Subscribe link must be a valid URL", "يجب أن يكون رابط الاشتراك صالحاً"));
+        return;
+      }
+    }
     const payload = {
       titleEn,
       titleAr,
@@ -221,6 +235,7 @@ export default function AdminPlansPage() {
       isActive: formActive,
       pdfUrl: formPdfUrl.trim() || null,
       pdfFileName: formPdfFileName.trim() || null,
+      subscribeUrl: subscribeUrlTrimmed || null,
     };
     setSavingId(editingId ?? "new");
     try {
@@ -243,6 +258,7 @@ export default function AdminPlansPage() {
               ...data,
               pdfUrl: data.pdfUrl ?? null,
               pdfFileName: data.pdfFileName ?? null,
+              subscribeUrl: data.subscribeUrl ?? null,
               featuresEn: parseFeatures(data.featuresEn),
               featuresAr: parseFeatures(data.featuresAr),
             },
@@ -269,6 +285,7 @@ export default function AdminPlansPage() {
                   ...data,
                   pdfUrl: data.pdfUrl ?? null,
                   pdfFileName: data.pdfFileName ?? null,
+                  subscribeUrl: data.subscribeUrl ?? null,
                   featuresEn: parseFeatures(data.featuresEn),
                   featuresAr: parseFeatures(data.featuresAr),
                 }
@@ -683,6 +700,22 @@ export default function AdminPlansPage() {
                 {pdfUploading && (
                   <p className="text-xs text-drd-muted">{tField(lang, "Uploading…", "جاري الرفع…")}</p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-drd-text mb-1">
+                  {tField(lang, "Subscribe link (e.g. Google Form)", "رابط الاشتراك (مثلاً نموذج Google)")}
+                </label>
+                <input
+                  type="url"
+                  value={formSubscribeUrl}
+                  onChange={(e) => setFormSubscribeUrl(e.target.value)}
+                  placeholder="https://forms.gle/..."
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                />
+                <p className="mt-1 text-xs text-drd-muted">
+                  {tField(lang, "Optional. If set, a \"Subscribe Now\" button appears on the plan card.", "اختياري. إذا تم تعيينه، سيظهر زر \"اشترك الآن\" على بطاقة الخطة.")}
+                </p>
               </div>
 
               <div>

@@ -281,6 +281,7 @@ export async function getSiteData() {
       isPopular: p.isPopular,
       pdfUrl: p.pdfUrl ?? undefined,
       pdfFileName: p.pdfFileName ?? undefined,
+      subscribeUrl: p.subscribeUrl ?? undefined,
     };
   });
 

@@ -20,6 +20,7 @@ export type Plan = {
   isPopular?: boolean;
   pdfUrl?: string | null;
   pdfFileName?: string | null;
+  subscribeUrl?: string | null;
 };
 
 // Copy for section labels (EN/AR)
@@ -33,6 +34,7 @@ const LABELS = {
   perMonth: { en: "per month", ar: "للشهر" },
   emptyWeekly: { en: "No weekly plans available right now.", ar: "لا توجد خطط أسبوعية متاحة حالياً." },
   emptyMonthly: { en: "No monthly plans available right now.", ar: "لا توجد خطط شهرية متاحة حالياً." },
+  subscribeNow: { en: "Subscribe Now", ar: "اشترك الآن" },
 } as const;
 
 // Fallback when DB has no plans
@@ -260,8 +262,29 @@ function PlanCard({ plan, billingPeriod }: PlanCardProps) {
                 {periodLabel}
               </p>
             </div>
-            {plan.pdfUrl ? (
+            {plan.subscribeUrl ? (
               <div className="mt-5 text-center">
+                <a
+                  href={plan.subscribeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-drd-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-drd-primary-dark"
+                  dir={lang === "ar" ? "rtl" : "ltr"}
+                >
+                  <span>{tField(lang, LABELS.subscribeNow.en, LABELS.subscribeNow.ar)}</span>
+                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+                </a>
+              </div>
+            ) : null}
+            {plan.pdfUrl ? (
+              <div className="mt-3 text-center">
                 <a
                   href={plan.pdfUrl}
                   target="_blank"

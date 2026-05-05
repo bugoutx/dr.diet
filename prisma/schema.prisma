@@ -286,6 +286,7 @@ model SubscriptionPlan {
   monthlyPrice Int?
   pdfUrl       String?  // optional downloadable plan PDF (e.g. Vercel Blob)
   pdfFileName  String?  // original filename for download / display
+  subscribeUrl String?  // optional external subscribe link (e.g. Google Forms)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

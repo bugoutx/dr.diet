@@ -19,6 +19,7 @@ const createSchema = z.object({
   isActive: z.boolean().optional().default(true),
   pdfUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
   pdfFileName: z.string().optional().nullable(),
+  subscribeUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
 }).refine((d) => d.weeklyPrice != null || d.monthlyPrice != null, {
   message: "At least one of weeklyPrice or monthlyPrice must be provided",
 });
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
       isActive: parsed.data.isActive ?? true,
       pdfUrl: (parsed.data.pdfUrl ?? "").trim() || null,
       pdfFileName: (parsed.data.pdfFileName ?? "").trim() || null,
+      subscribeUrl: (parsed.data.subscribeUrl ?? "").trim() || null,
     },
   });
   revalidateSite();
