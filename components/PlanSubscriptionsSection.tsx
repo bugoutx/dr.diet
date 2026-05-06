@@ -272,7 +272,14 @@ function PlanCard({ plan, billingPeriod }: PlanCardProps) {
                   dir={lang === "ar" ? "rtl" : "ltr"}
                 >
                   <span>{tField(lang, LABELS.subscribeNow.en, LABELS.subscribeNow.ar)}</span>
-                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <svg
+                    className="h-4 w-4 shrink-0"
+                    style={{ transform: lang === "ar" ? "scaleX(-1)" : undefined }}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
