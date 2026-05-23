@@ -19,10 +19,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (folder === "menu" || folder === "subscription-plans") {
+    if (folder === "menu") {
       if (file.type !== "application/pdf") {
         return NextResponse.json(
-          { error: folder === "menu" ? "Only PDF files are allowed for the menu" : "Only PDF files are allowed" },
+          { error: "Only PDF files are allowed for the menu" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (folder === "subscription-plans") {
+      const isPdf = file.type === "application/pdf";
+      const isImage = file.type.startsWith("image/");
+      if (!isPdf && !isImage) {
+        return NextResponse.json(
+          { error: "Only a PDF or image file is allowed" },
           { status: 400 }
         );
       }

@@ -35,6 +35,8 @@ const LABELS = {
   emptyWeekly: { en: "No weekly plans available right now.", ar: "لا توجد خطط أسبوعية متاحة حالياً." },
   emptyMonthly: { en: "No monthly plans available right now.", ar: "لا توجد خطط شهرية متاحة حالياً." },
   subscribeNow: { en: "Subscribe Now", ar: "اشترك الآن" },
+  viewPlan: { en: "View Plan", ar: "عرض الخطة" },
+  downloadPdf: { en: "Download Plan PDF", ar: "تحميل ملف الخطة" },
 } as const;
 
 // Fallback when DB has no plans
@@ -192,6 +194,7 @@ function PlanCard({ plan, billingPeriod }: PlanCardProps) {
   const subtitle = tField(lang, plan.subtitleEn ?? "", plan.subtitleAr ?? "");
   const features =
     lang === "ar" ? plan.featuresAr : plan.featuresEn;
+  const fileIsImage = /\.(png|jpe?g|webp|gif|avif|svg|bmp)(\?|$)/i.test(plan.pdfFileName || plan.pdfUrl || "");
 
   return (
     <motion.div
@@ -296,19 +299,32 @@ function PlanCard({ plan, billingPeriod }: PlanCardProps) {
                   href={plan.pdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  download={plan.pdfFileName || "plan.pdf"}
+                  {...(fileIsImage ? {} : { download: plan.pdfFileName || "plan.pdf" })}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-drd-primary/35 bg-white/90 px-4 py-2.5 text-sm font-semibold text-drd-primary shadow-sm transition hover:border-drd-primary/60 hover:bg-drd-primary/5"
                   dir={lang === "ar" ? "rtl" : "ltr"}
                 >
                   <svg className="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
+                    {fileIsImage ? (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    ) : (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    )}
                   </svg>
-                  <span>{tField(lang, "Download Plan PDF", "تحميل ملف الخطة")}</span>
+                  <span>
+                    {fileIsImage
+                      ? tField(lang, LABELS.viewPlan.en, LABELS.viewPlan.ar)
+                      : tField(lang, LABELS.downloadPdf.en, LABELS.downloadPdf.ar)}
+                  </span>
                 </a>
               </div>
             ) : null}
@@ -407,32 +423,29 @@ export default function PlanSubscriptionsSection({ plans: propPlans }: { plans?:
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
+            viewport={{ once: true, amount: 0.1 }}
             className={`
-              grid gap-5 md:gap-6
-              grid-cols-1 md:grid-cols-2
-              lg:flex lg:flex-row lg:justify-center lg:overflow-x-auto lg:snap-x lg:snap-mandatory
+              lg:overflow-x-auto lg:snap-x lg:snap-mandatory
               [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden
               lg:pb-2
             `}
-            style={{
-              gridTemplateColumns:
-                filteredPlans.length <= 2
-                  ? "repeat(auto-fit, minmax(280px, 320px))"
-                  : undefined,
-            }}
           >
-            {filteredPlans.map((plan) => (
-              <div
-                key={plan.id}
-                className="lg:snap-center lg:flex-shrink-0 lg:w-[min(320px,85vw)] lg:max-w-[320px]"
-              >
-                <PlanCard
-                  plan={plan}
-                  billingPeriod={billingPeriod}
-                />
-              </div>
-            ))}
+            {/* Inner track: stacked grid on small screens, a centered flex row on lg.
+                lg:w-max + lg:mx-auto centers the row when it fits and scrolls from the
+                left (no clipping) when the plans overflow the viewport. */}
+            <div className="grid gap-5 md:gap-6 grid-cols-1 md:grid-cols-2 lg:flex lg:w-max lg:mx-auto">
+              {filteredPlans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className="lg:snap-center lg:shrink-0 lg:w-[320px]"
+                >
+                  <PlanCard
+                    plan={plan}
+                    billingPeriod={billingPeriod}
+                  />
+                </div>
+              ))}
+            </div>
           </motion.div>
         )}
       </div>

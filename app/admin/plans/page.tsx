@@ -144,13 +144,16 @@ export default function AdminPlansPage() {
   const weeklyNum = formWeeklyPrice.trim() === "" ? null : parseInt(formWeeklyPrice.replace(/,/g, ""), 10);
   const monthlyNum = formMonthlyPrice.trim() === "" ? null : parseInt(formMonthlyPrice.replace(/,/g, ""), 10);
   const hasPrice = (weeklyNum != null && !Number.isNaN(weeklyNum)) || (monthlyNum != null && !Number.isNaN(monthlyNum));
+  const planFileIsImage = /\.(png|jpe?g|webp|gif|avif|svg|bmp)(\?|$)/i.test(formPdfFileName || formPdfUrl);
 
   async function handlePlanPdfFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.type !== "application/pdf") {
-      toast.error(tField(lang, "Please select a PDF file only.", "يرجى اختيار ملف PDF فقط."));
+    const isPdf = file.type === "application/pdf";
+    const isImage = file.type.startsWith("image/");
+    if (!isPdf && !isImage) {
+      toast.error(tField(lang, "Please select a PDF or image file.", "يرجى اختيار ملف PDF أو صورة."));
       return;
     }
     setPdfUploading(true);
@@ -163,7 +166,7 @@ export default function AdminPlansPage() {
       if (!res.ok) throw new Error(data?.error ?? "Upload failed");
       setFormPdfUrl(data.url ?? "");
       setFormPdfFileName(file.name);
-      toast.success(tField(lang, "PDF uploaded.", "تم رفع ملف PDF."));
+      toast.success(tField(lang, "File uploaded.", "تم رفع الملف."));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : tField(lang, "Upload failed.", "فشل الرفع."));
     } finally {
@@ -471,7 +474,7 @@ export default function AdminPlansPage() {
             )}
             {p.pdfUrl && (
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-drd-text/80 border border-slate-200">
-                PDF
+                {tField(lang, "File", "ملف")}
               </span>
             )}
             <label className="flex items-center gap-2">
@@ -645,20 +648,28 @@ export default function AdminPlansPage() {
 
               <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 space-y-3">
                 <label className="block text-sm font-semibold text-drd-text">
-                  {tField(lang, "Plan PDF", "ملف الخطة")}
+                  {tField(lang, "Plan file (PDF or image)", "ملف الخطة (PDF أو صورة)")}
                 </label>
                 <input
                   ref={planPdfInputRef}
                   type="file"
-                  accept="application/pdf,.pdf"
+                  accept="image/*,application/pdf,.pdf"
                   className="hidden"
                   onChange={handlePlanPdfFile}
                   disabled={!!savingId || pdfUploading}
                 />
                 {formPdfUrl ? (
                   <div className="space-y-2">
+                    {planFileIsImage && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={formPdfUrl}
+                        alt={formPdfFileName || "Plan file"}
+                        className="h-32 w-auto rounded-lg border border-slate-200 object-contain bg-white"
+                      />
+                    )}
                     <p className="text-xs text-drd-muted truncate" title={formPdfFileName || formPdfUrl}>
-                      {formPdfFileName || tField(lang, "PDF attached", "ملف PDF مرفق")}
+                      {formPdfFileName || tField(lang, "File attached", "ملف مرفق")}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <a
@@ -667,7 +678,7 @@ export default function AdminPlansPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center rounded-lg border border-drd-primary bg-drd-primary/10 px-3 py-1.5 text-sm font-medium text-drd-primary hover:bg-drd-primary/20"
                       >
-                        {tField(lang, "View PDF", "عرض الملف")}
+                        {tField(lang, "View file", "عرض الملف")}
                       </a>
                       <button
                         type="button"
@@ -675,7 +686,7 @@ export default function AdminPlansPage() {
                         onClick={() => planPdfInputRef.current?.click()}
                         className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-drd-text hover:bg-slate-50 disabled:opacity-50"
                       >
-                        {tField(lang, "Replace PDF", "استبدال الملف")}
+                        {tField(lang, "Replace file", "استبدال الملف")}
                       </button>
                       <button
                         type="button"
@@ -683,7 +694,7 @@ export default function AdminPlansPage() {
                         onClick={handlePlanPdfDelete}
                         className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                       >
-                        {tField(lang, "Delete PDF", "حذف الملف")}
+                        {tField(lang, "Delete file", "حذف الملف")}
                       </button>
                     </div>
                   </div>
@@ -694,7 +705,7 @@ export default function AdminPlansPage() {
                     onClick={() => planPdfInputRef.current?.click()}
                     className="rounded-lg border border-drd-primary bg-drd-primary/10 px-4 py-2 text-sm font-medium text-drd-primary hover:bg-drd-primary/20 disabled:opacity-50"
                   >
-                    {tField(lang, "Upload PDF", "رفع ملف PDF")}
+                    {tField(lang, "Upload file", "رفع ملف")}
                   </button>
                 )}
                 {pdfUploading && (
