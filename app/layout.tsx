@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import PublicNavWrapper from "@/components/PublicNavWrapper";
@@ -6,6 +7,8 @@ import OverflowDebugWrapper from "@/components/OverflowDebugWrapper";
 import SessionProvider from "@/components/providers/SessionProvider";
 import { LangProvider } from "@/lib/LangContext";
 import { SectionNavProvider } from "@/lib/SectionNavContext";
+import { InAppBrowserProvider } from "@/lib/InAppBrowserContext";
+import { isInAppBrowserUA } from "@/lib/inAppBrowser";
 import { getSectionNavVisibility } from "@/lib/data";
 
 const headingFont = Space_Grotesk({
@@ -34,6 +37,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const sectionNavVisibility = await getSectionNavVisibility();
+  const inAppBrowser = isInAppBrowserUA((await headers()).get("user-agent"));
 
   return (
     <html lang="en" className="h-full bg-white" suppressHydrationWarning>
@@ -42,13 +46,15 @@ export default async function RootLayout({
       >
         <SessionProvider>
           <SectionNavProvider value={sectionNavVisibility}>
-            <LangProvider>
-              <PublicNavWrapper />
-              <OverflowDebugWrapper />
-              <main className="w-full">
-                {children}
-              </main>
-            </LangProvider>
+            <InAppBrowserProvider value={inAppBrowser}>
+              <LangProvider>
+                <PublicNavWrapper />
+                <OverflowDebugWrapper />
+                <main className="w-full">
+                  {children}
+                </main>
+              </LangProvider>
+            </InAppBrowserProvider>
           </SectionNavProvider>
         </SessionProvider>
       </body>

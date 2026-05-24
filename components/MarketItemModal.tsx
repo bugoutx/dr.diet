@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 import { useLang } from "@/lib/LangContext";
 import { tField } from "@/lib/tField";
 import { formatPrice } from "@/lib/formatNumber";
@@ -74,7 +74,7 @@ export default function MarketItemModal({ item, onClose }: Props) {
         dir={lang === "ar" ? "rtl" : "ltr"}
       >
         <div className="flex-shrink-0 relative w-full aspect-[4/3] bg-slate-100">
-          <Image
+          <SmartImage
             src={item.image}
             alt={name || item.id}
             fill

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 import { useCallback } from "react";
 import { useLang } from "@/lib/LangContext";
 import { NAV_ITEMS, scrollToSection } from "@/lib/navLinks";
@@ -46,7 +46,7 @@ export default function FooterSection({ settings }: { settings?: FooterSettings 
               className="inline-flex shrink-0 transition-opacity hover:opacity-85"
               aria-label={isRtl ? "د.دايت — الصفحة الرئيسية" : "Dr.Diet — Home"}
             >
-              <Image
+              <SmartImage
                 src="/images/logo-text-green-cut.png"
                 alt="Dr.Diet"
                 width={160}

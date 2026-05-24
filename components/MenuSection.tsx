@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/lib/LangContext";
 import { formatMacros } from "@/lib/formatMacro";
@@ -149,7 +149,7 @@ function MobileMealCard({ item }: { item: MenuItem }) {
       className="group w-full rounded-3xl border border-slate-100 bg-white/80 shadow-sm shadow-black/5 overflow-hidden transition hover:border-drd-primary/60 hover:bg-emerald-50/60 hover:shadow-lg hover:shadow-drd-primary/15"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden">
-        <Image
+        <SmartImage
           src={item.image}
           alt={tField(lang, item.nameEn, item.nameAr) || item.id || "Menu item"}
           fill
@@ -717,7 +717,7 @@ export default function MenuSection({ categories: propCategories }: { categories
                       "
                     >
                       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-3xl">
-                        <Image
+                        <SmartImage
                           src={item.image}
                           alt={tField(lang, item.nameEn, item.nameAr) || item.id || "Menu item"}
                           fill
@@ -826,7 +826,7 @@ export default function MenuSection({ categories: propCategories }: { categories
                       >
                         {/* image */}
                         <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-3xl">
-                          <Image
+                          <SmartImage
                             src={item.image}
                             alt={tField(lang, item.nameEn, item.nameAr) || item.id || "Menu item"}
                             fill

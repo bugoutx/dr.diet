@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 import { useLang } from "@/lib/LangContext";
 import { tField } from "@/lib/tField";
 import { formatMacros } from "@/lib/formatMacro";
@@ -267,7 +267,7 @@ export default function HeroSection({
                     transition={{ duration: 0.6, ease: "easeInOut" }}
                     className="relative h-full w-full"
                   >
-                    <Image
+                    <SmartImage
                       src={activeMeal.image}
                       alt={tField(lang, activeMeal.nameEn, activeMeal.nameAr ?? activeMeal.nameEn) || "Hero meal"}
                       fill

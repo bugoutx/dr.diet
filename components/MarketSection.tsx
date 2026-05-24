@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/lib/LangContext";
 import { tField } from "@/lib/tField";
@@ -232,7 +232,7 @@ export default function MarketSection({ categories, sectionTitle }: Props) {
                     >
                       {/* Full-bleed card: single aspect-ratio container, image + overlays only */}
                       <div className="relative w-full aspect-[3/4] md:aspect-[4/5]">
-                        <Image
+                        <SmartImage
                           src={item.image}
                           alt={name || item.id}
                           fill

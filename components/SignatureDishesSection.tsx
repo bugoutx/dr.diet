@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 import { useLang } from "@/lib/LangContext";
 import { tField } from "@/lib/tField";
 import { formatMacros } from "@/lib/formatMacro";
@@ -294,7 +294,7 @@ function MealSlide({ plate }: { plate: PlateSlide }) {
       <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-drd-primary/30 via-transparent to-drd-accent/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none -z-10" />
       <div className="absolute -top-12 -left-12 w-48 h-48 bg-drd-primary/8 rounded-full blur-3xl pointer-events-none" />
       <div className="relative w-full h-[260px] md:h-[320px]">
-        <Image
+        <SmartImage
           src={plate.image}
           unoptimized={plate.image.startsWith("http")}
           alt={name || "Dish"}
