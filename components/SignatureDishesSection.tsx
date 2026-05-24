@@ -296,7 +296,6 @@ function MealSlide({ plate }: { plate: PlateSlide }) {
       <div className="relative w-full h-[260px] md:h-[320px]">
         <SmartImage
           src={plate.image}
-          unoptimized={plate.image.startsWith("http")}
           alt={name || "Dish"}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"

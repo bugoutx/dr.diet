@@ -238,7 +238,6 @@ export default function MarketSection({ categories, sectionTitle }: Props) {
                           fill
                           className="object-cover"
                           sizes="(max-width: 768px) 260px, 320px"
-                          unoptimized={item.image.startsWith("http")}
                         />
                         {/* Bottom overlay: gradient + name, description, price */}
                         <div

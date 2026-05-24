@@ -273,7 +273,6 @@ export default function HeroSection({
                       fill
                       className="h-full w-full object-cover"
                       sizes="(max-width: 1024px) 100vw, 50vw"
-                      unoptimized={activeMeal.image.startsWith("http")}
                     />
                   </motion.div>
                 </AnimatePresence>

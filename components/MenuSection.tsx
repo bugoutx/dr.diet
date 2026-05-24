@@ -155,7 +155,6 @@ function MobileMealCard({ item }: { item: MenuItem }) {
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"
           sizes="240px"
-          unoptimized={item.image.startsWith("http")}
         />
       </div>
       <div
