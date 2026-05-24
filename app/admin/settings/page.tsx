@@ -9,6 +9,7 @@ import { tField } from "@/lib/tField";
 
 type Settings = {
   phoneNumber: string | null;
+  subscriptionPhoneNumber: string | null;
   instagramUrl: string | null;
   instagramHandle: string | null;
   facebookUrl: string | null;
@@ -46,6 +47,7 @@ export default function AdminSettingsPage() {
       .then((data) => {
         setSettings({
           ...data,
+          subscriptionPhoneNumber: data.subscriptionPhoneNumber ?? null,
           mapsEmbedHtml: data.mapsEmbedHtml ?? null,
           locationText: data.locationText ?? null,
           locationEn: data.locationEn ?? null,
@@ -164,6 +166,18 @@ export default function AdminSettingsPage() {
                 value={settings.phoneNumber ?? ""}
                 onChange={(e) => setSettings({ ...settings, phoneNumber: e.target.value || null })}
                 className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-drd-text mb-1">
+                {tField(lang, "Subscription Plan Number", "رقم خطط الاشتراك")}
+              </label>
+              <input
+                type="text"
+                value={settings.subscriptionPhoneNumber ?? ""}
+                onChange={(e) => setSettings({ ...settings, subscriptionPhoneNumber: e.target.value || null })}
+                className="w-full rounded-lg border border-slate-200 px-4 py-2 text-drd-text"
+                placeholder={tField(lang, "Dedicated number for subscriptions", "رقم مخصص للاشتراكات")}
               />
             </div>
             <div>

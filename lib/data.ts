@@ -325,6 +325,7 @@ export async function getSiteData() {
     plans: plansMapped,
     settings: settings ?? {
       phoneNumber: null,
+      subscriptionPhoneNumber: null,
       instagramUrl: null,
       instagramHandle: null,
       facebookUrl: null,

@@ -7,6 +7,7 @@ import { extractGoogleMapsEmbedSrc } from "@/lib/mapsEmbed";
 
 const settingsSchema = z.object({
   phoneNumber: z.string().optional().nullable(),
+  subscriptionPhoneNumber: z.string().optional().nullable(),
   instagramUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
   instagramHandle: z.string().optional().nullable(),
   facebookUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
@@ -70,6 +71,7 @@ export async function PUT(req: NextRequest) {
   const data = parsed.data;
   const update: Record<string, unknown> = {};
   if (data.phoneNumber !== undefined) update.phoneNumber = data.phoneNumber;
+  if (data.subscriptionPhoneNumber !== undefined) update.subscriptionPhoneNumber = data.subscriptionPhoneNumber;
   if (data.instagramUrl !== undefined) update.instagramUrl = data.instagramUrl;
   if (data.instagramHandle !== undefined) update.instagramHandle = data.instagramHandle;
   if (data.facebookUrl !== undefined) update.facebookUrl = data.facebookUrl;
