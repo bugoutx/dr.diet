@@ -8,7 +8,6 @@ import SessionProvider from "@/components/providers/SessionProvider";
 import { LangProvider } from "@/lib/LangContext";
 import { SectionNavProvider } from "@/lib/SectionNavContext";
 import { InAppBrowserProvider } from "@/lib/InAppBrowserContext";
-import InAppMediaReveal from "@/components/InAppMediaReveal";
 import { isInAppBrowserUA } from "@/lib/inAppBrowser";
 import { getSectionNavVisibility } from "@/lib/data";
 
@@ -48,7 +47,6 @@ export default async function RootLayout({
         <SessionProvider>
           <SectionNavProvider value={sectionNavVisibility}>
             <InAppBrowserProvider value={inAppBrowser}>
-              <InAppMediaReveal />
               <LangProvider>
                 <PublicNavWrapper />
                 <OverflowDebugWrapper />

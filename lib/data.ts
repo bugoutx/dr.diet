@@ -9,7 +9,6 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "./prisma";
 import { MAX_HERO_MEALS } from "./heroMeals";
-import { proxyMedia } from "./mediaProxy";
 import type { SectionNavVisibility } from "./sectionNavVisibility";
 
 const CACHE_TAG = "site";
@@ -286,13 +285,11 @@ export async function getSiteData() {
     };
   });
 
-  // Map videos to ReelsArcCarousel shape { id, src, poster, titleEn?, titleAr? }.
-  // Route remote media through the same-origin proxy so in-app browsers (Instagram/
-  // Facebook on Android) can load it — they fail on the cross-origin blob domain.
+  // Map videos to ReelsArcCarousel shape { id, src, poster, titleEn?, titleAr? }
   const videosMapped = videos.map((v) => ({
     id: v.id,
-    src: proxyMedia(v.videoUrl),
-    poster: proxyMedia(v.posterUrl ?? ""),
+    src: v.videoUrl,
+    poster: v.posterUrl ?? "",
     titleEn: v.titleEn ?? undefined,
     titleAr: v.titleAr ?? undefined,
   }));

@@ -37,17 +37,9 @@ interface ReelCardProps {
   isVisible: boolean;
 }
 
-function ReelCard({ reel, onClick, isCenter, isVisible }: ReelCardProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+function ReelCard({ reel, onClick, isCenter }: ReelCardProps) {
   const { lang } = useLang();
   const title = tField(lang, reel.titleEn, reel.titleAr);
-
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (isVisible) v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
-    else v.pause();
-  }, [isVisible]);
 
   return (
     <div className="shrink-0 w-[220px] sm:w-[240px] md:w-[260px] lg:w-[280px] xl:w-[300px] max-w-[85vw] aspect-[9/16]">
@@ -65,17 +57,24 @@ function ReelCard({ reel, onClick, isCenter, isVisible }: ReelCardProps) {
         <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/10 pointer-events-none z-10 rounded-3xl" aria-hidden />
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-drd-primary via-emerald-300 to-drd-primary z-20" />
         <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-drd-accent z-20" />
+        {/* preload="metadata" + no autoPlay: shows a thumbnail frame without downloading
+            the whole video. The full video loads only when tapped (opens the modal). */}
         <video
-          ref={videoRef}
           src={reel.src}
-          poster={reel.poster}
+          poster={reel.poster || undefined}
           muted
-          loop
-          autoPlay
           playsInline
           preload="metadata"
           className={`absolute inset-0 w-full h-full rounded-3xl ${isCenter ? "object-contain" : "object-cover"}`}
         />
+        {/* Tap-to-play indicator */}
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm">
+            <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </div>
         {title ? (
           <p className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs py-1.5 px-2 text-center truncate z-20" dir={lang === "ar" ? "rtl" : "ltr"}>
             {title}
