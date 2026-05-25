@@ -40,6 +40,10 @@ interface ReelCardProps {
 function ReelCard({ reel, onClick, isCenter }: ReelCardProps) {
   const { lang } = useLang();
   const title = tField(lang, reel.titleEn, reel.titleAr);
+  // When there's no poster, append a media fragment so the browser renders the frame
+  // at 0.1s as the thumbnail. Mobile/in-app webviews (Instagram) don't show the default
+  // first frame from preload="metadata", which otherwise leaves the card blank.
+  const thumbSrc = reel.poster || reel.src.includes("#") ? reel.src : `${reel.src}#t=0.1`;
 
   return (
     <div className="shrink-0 w-[220px] sm:w-[240px] md:w-[260px] lg:w-[280px] xl:w-[300px] max-w-[85vw] aspect-[9/16]">
@@ -60,7 +64,7 @@ function ReelCard({ reel, onClick, isCenter }: ReelCardProps) {
         {/* preload="metadata" + no autoPlay: shows a thumbnail frame without downloading
             the whole video. The full video loads only when tapped (opens the modal). */}
         <video
-          src={reel.src}
+          src={thumbSrc}
           poster={reel.poster || undefined}
           muted
           playsInline
