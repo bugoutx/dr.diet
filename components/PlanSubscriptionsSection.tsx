@@ -258,8 +258,7 @@ function PlanCard({ plan, billingPeriod }: PlanCardProps) {
           <div className="border-t border-slate-200/60 pt-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-drd-primary tracking-tight">
-                {formatNumber(displayPrice ?? 0)}{" "}
-                <span className="text-sm font-medium opacity-70">{lang === "ar" ? "ل.س" : "SYP"}</span>
+                ${formatNumber(displayPrice ?? 0)}
               </p>
               <p className="mt-1.5 text-xs text-drd-text/60 font-medium">
                 {periodLabel}

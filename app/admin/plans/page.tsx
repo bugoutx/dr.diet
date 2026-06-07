@@ -460,10 +460,10 @@ export default function AdminPlansPage() {
               <p className="text-sm text-drd-muted">{p.subtitleEn || "—"}</p>
               <div className="mt-1 flex flex-wrap gap-2">
                 {p.weeklyPrice != null && (
-                  <span className="text-xs text-drd-text/70">{formatNumber(p.weeklyPrice)} SYP/week</span>
+                  <span className="text-xs text-drd-text/70">${formatNumber(p.weeklyPrice)}/week</span>
                 )}
                 {p.monthlyPrice != null && (
-                  <span className="text-xs text-drd-text/70">{formatNumber(p.monthlyPrice)} SYP/month</span>
+                  <span className="text-xs text-drd-text/70">${formatNumber(p.monthlyPrice)}/month</span>
                 )}
               </div>
             </div>
@@ -612,34 +612,34 @@ export default function AdminPlansPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-drd-text mb-1">Weekly price (SYP)</label>
+                  <label className="block text-sm font-medium text-drd-text mb-1">Weekly price ($)</label>
                   <input
                     type="text"
                     inputMode="numeric"
                     value={formWeeklyPrice}
                     onChange={(e) => setFormWeeklyPrice(e.target.value.replace(/\D/g, ""))}
-                    placeholder="e.g. 625000"
+                    placeholder="e.g. 25"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2"
                   />
                   {weeklyNum != null && !Number.isNaN(weeklyNum) && (
                     <p className="mt-1 text-xs text-drd-muted">
-                      Preview: {formatNumber(weeklyNum)} SYP
+                      Preview: ${formatNumber(weeklyNum)}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-drd-text mb-1">Monthly price (SYP)</label>
+                  <label className="block text-sm font-medium text-drd-text mb-1">Monthly price ($)</label>
                   <input
                     type="text"
                     inputMode="numeric"
                     value={formMonthlyPrice}
                     onChange={(e) => setFormMonthlyPrice(e.target.value.replace(/\D/g, ""))}
-                    placeholder="e.g. 3000000"
+                    placeholder="e.g. 100"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2"
                   />
                   {monthlyNum != null && !Number.isNaN(monthlyNum) && (
                     <p className="mt-1 text-xs text-drd-muted">
-                      Preview: {formatNumber(monthlyNum)} SYP
+                      Preview: ${formatNumber(monthlyNum)}
                     </p>
                   )}
                 </div>
